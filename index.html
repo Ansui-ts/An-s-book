@@ -1,0 +1,3393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>剪纸立体书 · 游乐园</title>
+<style>
+  :root{
+    --ink:#6f5238;
+    --paper:#fdf8ee;
+    --spread-w:1480px;
+    --spread-h:900px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overflow:hidden;
+    background:radial-gradient(120% 100% at 50% 0%,#f3e9d6 0%,#e2d3b8 55%,#d0bd9c 100%);
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center}
+
+  #stage{position:relative;width:var(--spread-w);height:var(--spread-h);
+    flex:none;transform-origin:center center;
+    opacity:0;transform:scale(calc(var(--fit,.65) * .95));
+    transition:opacity .85s ease,transform 1.15s cubic-bezier(.2,.9,.25,1);
+    will-change:transform}
+  #stage.in{opacity:1;transform:scale(var(--fit,.65))}
+  html.instant *{transition:none!important;animation-duration:.001s!important}
+
+  #book{position:absolute;inset:0;border-radius:16px;overflow:hidden;
+    background:var(--paper);
+    box-shadow:0 36px 76px -24px rgba(96,70,40,.55),0 6px 16px rgba(96,70,40,.16);}
+  #book::after{content:"";position:absolute;inset:0;border-radius:16px;z-index:60;
+    box-shadow:inset 0 0 0 1px rgba(196,170,130,.8);
+    background:
+      radial-gradient(120% 90% at 50% 120%, rgba(120,92,56,.10), transparent 55%);
+    pointer-events:none}
+
+  #sky{position:absolute;inset:0;
+    background:linear-gradient(178deg,#d2e7f4 0%,#dde9f1 24%,#eeeade 60%,#fdf3e4 100%)}
+
+  .layer{position:absolute;will-change:transform}
+  .layer img{display:block;width:100%;height:100%;pointer-events:none;
+    user-select:none;-webkit-user-drag:none}
+
+  /* 远山与中景 */
+  #mtnFar {left:50%;transform:translateX(-50%);width:104%;bottom:35.5%;aspect-ratio:1400/787}
+  #mtnNear{left:50%;transform:translateX(-50%);width:108%;bottom:30.5%;aspect-ratio:1400/552}
+  #midGround{left:50%;transform:translateX(-50%);width:122%;bottom:20%;aspect-ratio:2200/300}
+
+  /* 地面：镜像平铺三份 */
+  #groundWrap{left:50%;transform:translateX(-50%);height:48.5%;width:163.6%;bottom:0;
+    display:flex}
+  #groundWrap img{width:33.3333%;height:100%;flex:none}
+  #groundWrap img.flip{transform:scaleX(-1)}
+
+  /* 前景花丛 */
+  #flowerWrap{left:-9.459%;width:99.51%;height:27%;bottom:-1%;display:flex}
+  #flowerWrap img{width:50%;height:100%;flex:none}
+  #flowerWrap img.flip{transform:scaleX(-1)}
+
+  /* ============ 旋转木马 ============ */
+  #carousel{left:24.5%;bottom:22.2%;height:56.5%;aspect-ratio:1400/1212;
+    transform:translateX(-50%);z-index:20}
+  #carBody{position:absolute;inset:0;width:100%;height:100%;z-index:3}
+  .horsesBack,.horsesFront{position:absolute;inset:0}
+  .horsesBack{z-index:2}
+  .horsesFront{z-index:4}
+  .horse{position:absolute;left:50%;bottom:11.8%;width:0;height:22.8%;
+    transform-origin:50% 100%;will-change:left,bottom,height}
+  .horse img{position:absolute;left:0;bottom:0;height:100%;width:auto;
+    transform:translateX(-50%);transform-origin:50% 100%}
+  .pole{position:absolute;left:0;bottom:0;transform:translateX(-50%);z-index:-1;
+    border-radius:2px;background:linear-gradient(90deg,#bb8d51,#f0d9b2 26%,#f8e9cd 52%,#e2bd88 74%,#b8863f)}
+  .cap{position:absolute;left:0;bottom:0;transform:translate(-50%,46%);z-index:-1;
+    border-radius:2px 2px 40% 40%;
+    background:linear-gradient(180deg,#fbe3b0,#eab95f 42%,#d79a3f 78%,#a9762f);
+    box-shadow:0 1px 2px rgba(120,80,30,.35)}
+
+  #rideBtn{position:absolute;left:22.5%;bottom:19.4%;transform:translateX(-50%);
+    z-index:40;display:flex;align-items:center;gap:9px;padding:10px 20px 10px 16px;
+    border:none;border-radius:999px;cursor:pointer;font-family:inherit;font-size:15px;
+    letter-spacing:.06em;color:#6b4a29;background:linear-gradient(180deg,#fffaef,#f2e1c3);
+    box-shadow:0 5px 0 #d3b288,0 10px 20px rgba(120,88,48,.26),inset 0 1px 0 #fffdf7;
+    transition:transform .12s,box-shadow .12s}
+  #rideBtn:hover{transform:translateX(-50%) translateY(-1px)}
+  #rideBtn:active,#rideBtn.on{transform:translateX(-50%) translateY(3px);
+    box-shadow:0 2px 0 #d3b288,0 4px 10px rgba(120,88,48,.28),inset 0 1px 0 #fffdf7}
+  #rideBtn .ico{width:11px;height:11px;flex:none;border-top:2.5px solid #6b4a29;
+    border-right:2.5px solid #6b4a29;transform:rotate(45deg);transform-origin:62% 40%;
+    transition:transform .25s}
+  #rideBtn.on .ico{transform:rotate(135deg);transform-origin:38% 62%}
+  #rideBtn .dot{width:10px;height:10px;border-radius:50%;flex:none;background:#cab49a;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.2);transition:background .3s,box-shadow .3s}
+  #rideBtn.on .dot{background:#e8b04b;box-shadow:0 0 9px #f0c874,inset 0 1px 1px rgba(255,255,255,.7)}
+
+  /* ============ 跷跷板 ============ */
+  #seesaw{left:64.5%;bottom:25.8%;width:26%;aspect-ratio:1400/486;
+    transform:translateX(-50%);z-index:19}
+  #seesawBoard{position:absolute;left:-6.4286%;top:-18.5185%;width:112.857%;
+    aspect-ratio:1580/666;transform-origin:50.633% 55.105%;z-index:2;will-change:transform}
+  #seesawBoard>img{position:absolute;inset:0;width:100%;height:100%}
+  .sBear{position:absolute;transform-origin:50% 100%;will-change:transform;z-index:3}
+  #sBearL{left:8.101%;top:calc(13.514% + 2px);width:15.696%;aspect-ratio:248/224}
+  #sBearR{left:76.962%;top:calc(15.465% + 2px);width:14.557%;aspect-ratio:230/211}
+  .sBear img{display:block;width:100%;height:100%}
+  #seesawFrame{position:absolute;inset:0;width:100%;height:100%;z-index:4}
+  #seesawHitL,#seesawHitR{position:absolute;top:-16%;bottom:-10%;width:34%;z-index:30;
+    cursor:pointer}
+  #seesawHitL{left:-6%}
+  #seesawHitR{right:-6%}
+  #seesawHint{position:absolute;left:50%;bottom:-42%;transform:translateX(-50%);
+    font-size:12px;color:#8a7452;letter-spacing:.12em;white-space:nowrap;opacity:0;
+    transition:opacity .45s;pointer-events:none;z-index:31}
+  #seesaw:hover #seesawHint{opacity:.8}
+
+  /* ============ 秋千 ============ */
+  #swing{left:86.8%;bottom:25.9%;height:32%;aspect-ratio:1400/1134;
+    transform:translateX(-50%);z-index:18}
+  .seat{position:absolute;will-change:transform;cursor:grab;touch-action:none}
+  .seat:active{cursor:grabbing}
+  .seat img{display:block;width:100%;height:100%;pointer-events:none}
+  #seatA{left:30.643%;top:7.496%;width:19%;aspect-ratio:266/895;transform-origin:50.38% 3.02%}
+  #seatB{left:52.143%;top:7.496%;width:19%;aspect-ratio:266/895;transform-origin:50.00% 3.02%}
+  #swingFrame{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+
+  /* ============ 小熊 ============ */
+  .bear{position:absolute;transform:translateX(-50%);z-index:35;cursor:pointer}
+  #bearA{left:45.5%;bottom:4.2%;height:22.5%;aspect-ratio:1400/1397}
+  #bearB{left:57.2%;bottom:5.2%;height:19.5%;aspect-ratio:1400/1397}
+  .bear img{display:block;width:100%;height:100%;transform-origin:50% 100%;
+    transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
+  .bear:hover img{transform:translateY(-4px)}
+  #balloons{left:42.3%;bottom:19.4%;height:19.5%;aspect-ratio:1400/1381;
+    transform:translateX(-50%);z-index:34}
+  #balloons img{display:block;width:100%;height:100%;transform-origin:50% 100%}
+
+  /* ============ 选中态：剪纸白边 + 暖光 + 轻微放大 ============ */
+  .pickable{transform-origin:50% 86%;
+    transition:scale .42s cubic-bezier(.34,1.35,.5,1),filter .3s ease}
+  .pickable.picked{
+    scale:1.06;
+    filter:
+      drop-shadow( 2px 0 0 #fff8ea) drop-shadow(-2px 0 0 #fff8ea)
+      drop-shadow(0  2px 0 #fff8ea) drop-shadow(0 -2px 0 #fff8ea)
+      drop-shadow(0 0 7px rgba(255,190,96,.95))
+      drop-shadow(0 13px 18px rgba(112,76,40,.38));
+  }
+
+  /* ============ 对话气泡（手剪纸片） ============ */
+  .bubble{position:absolute;z-index:50;width:max-content;max-width:336px;
+    padding:24px 26px 20px;
+    color:#5a422c;
+    font-family:"YouYuan","幼圆","Yuanti SC","STYuanti","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:20px;font-weight:500;line-height:1.62;letter-spacing:.025em;
+    background:
+      repeating-linear-gradient(135deg,rgba(184,150,108,.035) 0 2px,transparent 2px 6px),
+      var(--paper);
+    border-radius:24px 28px 22px 26px / 26px 22px 28px 24px;
+    box-shadow:
+      0 0 0 2px #fffdf6,
+      0 0 0 4px rgba(214,182,134,.5),
+      7px 8px 0 -1px #efd9b2,
+      7px 8px 0 0 rgba(196,158,108,.55),
+      0 18px 30px -8px rgba(110,80,44,.42);
+    opacity:0;transform:translateX(-50%) rotate(1.5deg) scale(.9) translateY(10px);
+    transform-origin:50% 100%;cursor:pointer;
+    transition:opacity .28s ease,transform .42s cubic-bezier(.34,1.4,.5,1);
+    pointer-events:none}
+  .bubble.show{opacity:1;pointer-events:auto;
+    transform:translateX(-50%) rotate(-1.3deg) scale(1) translateY(0)}
+  .bubble::after{content:"";position:absolute;left:50%;bottom:-9px;width:18px;height:18px;
+    margin-left:-9px;background:var(--paper);transform:rotate(45deg);
+    border-radius:0 0 5px 0;
+    box-shadow:2px 2px 0 0 rgba(214,182,134,.55)}
+  .bubble .tag{position:absolute;left:-10px;top:-16px;
+    padding:4px 13px 5px;border-radius:999px;
+    font-size:13px;letter-spacing:.08em;color:#fffaf0;
+    background:linear-gradient(180deg,#e8a75c,#d18c42);
+    box-shadow:0 3px 0 #b9792f,0 6px 10px rgba(140,96,44,.3),inset 0 1px 0 rgba(255,255,255,.5);
+    transform:rotate(-5deg);white-space:nowrap}
+  .bubble .txt{display:block}
+  .bubble .foot{display:flex;align-items:center;justify-content:flex-end;
+    min-height:27px;margin-top:12px;gap:10px}
+  .bubble .next{font-size:13px;color:#b79a72;letter-spacing:.08em;
+    opacity:0;transition:opacity .3s;white-space:nowrap}
+  .bubble .next.on{opacity:.9}
+  .bubble .play{display:none;align-items:center;gap:6px;
+    padding:8px 16px 9px;border:none;border-radius:999px;cursor:pointer;
+    font-family:inherit;font-size:17px;font-weight:600;letter-spacing:.04em;
+    color:#6b4522;background:linear-gradient(180deg,#fff3d4,#f4cf85);
+    box-shadow:0 4px 0 #d7a54e,0 8px 14px rgba(150,104,44,.3),inset 0 1px 0 #fffbe9;
+    transition:transform .12s,box-shadow .12s;white-space:nowrap}
+  .bubble .play.show{display:inline-flex;animation:pop .4s cubic-bezier(.34,1.5,.5,1) both}
+  .bubble .play:hover{transform:translateY(-1px)}
+  .bubble .play:active{transform:translateY(3px);
+    box-shadow:0 1px 0 #d7a54e,0 3px 8px rgba(150,104,44,.32),inset 0 1px 0 #fffbe9}
+  .bubble .play i{font-style:normal;font-size:19px;line-height:1;transform:translateY(-1px)}
+  @keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+
+  /* ============ 主页右上角 · 集星徽标（三个游戏各取最高，合计 15） ============ */
+  #topHud{position:fixed;top:14px;right:16px;z-index:150;
+    display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+  #starBank{position:relative;min-width:186px;padding:10px 14px 11px;cursor:pointer;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    border-radius:16px 18px 15px 17px;border:2px solid #fffaf0;
+    background:linear-gradient(180deg,#fffaef,#f1e0c0);
+    box-shadow:0 4px 0 #d3b288,0 9px 18px rgba(120,88,48,.26),inset 0 1px 0 #fffdf7;
+    user-select:none;-webkit-user-select:none;transition:transform .12s}
+  #starBank:active{transform:translateY(2px)}
+  #starBank .sbHead{display:flex;align-items:center;gap:8px}
+  #starBank .sbStar{width:26px;height:26px;flex:none;
+    filter:drop-shadow(0 2px 2px rgba(180,120,40,.35))}
+  #starBank .sbNum{font-size:14px;font-weight:700;color:#a4885c;line-height:1;white-space:nowrap}
+  #starBank .sbNum b{font-size:23px;color:#c07f24}
+  #starBank .sbTitle{font-size:11px;color:#9a7c52;letter-spacing:.06em;
+    margin-left:auto;white-space:nowrap}
+  #starBank .sbBar{display:flex;gap:2px;margin-top:9px}
+  #starBank .sbBar u{flex:1;height:7px;border-radius:3px;background:#e2d2b4;text-decoration:none;
+    box-shadow:inset 0 1px 1px rgba(120,90,50,.14)}
+  #starBank .sbBar u.on{background:linear-gradient(180deg,#ffd569,#f0a92e);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+  #starBank .sbDetail{display:none;margin-top:10px;padding-top:8px;
+    border-top:1.5px dashed rgba(190,160,120,.6)}
+  #starBank.open .sbDetail{display:block}
+  #starBank .sbRow{display:flex;align-items:center;gap:7px;margin:4px 0;
+    font-size:11.5px;color:#8a6f4a}
+  #starBank .sbRow span{width:50px;flex:none}
+  #starBank .sbRow em{display:flex;gap:3px;font-style:normal}
+  #starBank .sbRow em svg{width:13px;height:13px}
+  #starBank .sbRow b{margin-left:auto;color:#a97f42;font-size:11px;font-weight:700}
+  #starBank .sbTip{font-size:10px;color:#b0906a;text-align:center;
+    margin-top:8px;letter-spacing:.02em}
+  #starBank.full{background:linear-gradient(180deg,#fff3cf,#ffe1a0);
+    border-color:#fff6dc;
+    box-shadow:0 4px 0 #d9a449,0 9px 22px rgba(224,160,40,.5),inset 0 1px 0 #fff8e0;
+    animation:sbGlow 1.7s ease-in-out infinite}
+  #starBank.full .sbNum b{color:#b56a12}
+  @keyframes sbGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.07)}}
+  #topHud #sndBtn{position:static}
+
+  /* 满星奖励 · 蜂蜜罐贴纸（挂在对话气泡上） */
+  .bubble .gift{display:none;position:absolute;right:-16px;top:-24px;width:58px;height:58px;
+    filter:drop-shadow(0 5px 7px rgba(120,80,30,.35));transform:rotate(12deg);
+    animation:pop .5s cubic-bezier(.34,1.5,.5,1) both}
+  .bubble.hasGift .gift{display:block}
+
+  #hint{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));
+    transform:translateX(-50%);z-index:99;pointer-events:none;
+    font-size:12.5px;color:#6d5436;letter-spacing:.16em;white-space:nowrap;opacity:.9}
+  #rotateTip{position:fixed;left:50%;top:14px;transform:translateX(-50%);
+    font-size:12px;color:#8a7150;letter-spacing:.1em;opacity:0;transition:opacity .4s;
+    pointer-events:none;z-index:99}
+
+  /* ============ 旋转木马 · 骑乘游戏 ============ */
+  #game{position:fixed;inset:0;z-index:200;display:none;overflow:hidden;
+    background:linear-gradient(180deg,#d5e9f6 0%,#e9eee9 46%,#f3ead6 56%,#d9e6bd 100%);
+    font-family:"YouYuan","幼圆","Yuanti SC","STYuanti","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);touch-action:none;user-select:none;-webkit-user-select:none}
+  #game.on{display:block;animation:gFade .5s ease both}
+  html.instant #game.on{animation:none}
+  @keyframes gFade{from{opacity:0}to{opacity:1}}
+
+  #gRide{position:absolute;inset:-6%;transform-origin:50% 62%;will-change:transform}
+  /* 镜头层：整幅场景随玩家所在列反向平移，让「我这一列」始终对准画面中央，马头保持居中 */
+  #gCam{position:absolute;inset:0;will-change:transform}
+  #gSky{position:absolute;inset:0;
+    background:radial-gradient(90% 60% at 50% 16%,rgba(255,255,255,.75),transparent 72%)}
+  .gHill{position:absolute;border-radius:50% 50% 0 0/100% 100% 0 0;
+    box-shadow:inset 0 4px 0 rgba(255,255,255,.85)}
+  #gHill1{left:-16%;width:74%;height:38%;top:26%;background:#e7ddc1}
+  #gHill2{right:-14%;width:82%;height:44%;top:22%;background:#dfe6c8}
+  #gHill3{left:18%;width:70%;height:26%;top:38%;background:#ccdcb3}
+  #gGround{position:absolute;left:-42%;right:-42%;top:55%;bottom:-25%;
+    border-radius:50% 50% 0 0/10% 10% 0 0;
+    background:
+      repeating-radial-gradient(circle at 50% 0%,rgba(255,255,255,.17) 0 3px,transparent 3px 48px),
+      linear-gradient(180deg,#dbe9be,#bdd89c 62%,#a8c888);
+    box-shadow:inset 0 5px 0 rgba(255,255,255,.65)}
+  #gRails{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  /* 三条车道：当前列亮起奶白纸路 */
+  .gLane{fill:rgba(255,252,240,0);transition:fill .3s ease}
+  .gLane.on{fill:rgba(255,252,240,.46)}
+  #gWorld{position:absolute;inset:0;pointer-events:none}
+  /* 脚下投影：跟着跑道走，升得越高越小越淡 */
+  #gShadow{position:absolute;left:50%;bottom:4.5%;width:21%;aspect-ratio:2.7/1;
+    transform:translateX(-50%);border-radius:50%;pointer-events:none;z-index:9;
+    background:radial-gradient(50% 50% at 50% 50%,rgba(92,68,36,.55),rgba(92,68,36,0) 72%);
+    will-change:left,opacity,transform}
+
+  /* 障碍的固定大小坐标牌：不随透视缩放，始终能读出「哪一列 · 什么点心」 */
+  .gObsTag{position:absolute;z-index:8;pointer-events:none;transform:translate(-50%,-50%);
+    display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:12px 14px 11px 13px;
+    white-space:nowrap;background:rgba(255,250,238,.94);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 3.5px rgba(214,182,134,.6),0 6px 12px rgba(110,80,44,.25)}
+  .gObsTag b{font-size:13px;font-weight:700;color:#a8412a}
+  .gObsTag span{font-size:11px;color:#8a7150}
+  /* 障碍：小巧鲜明的剪纸片。锁在固定的(列,层)网格点，只做轻微由远及近缩放，
+     绝不放大成一整块，也不叠任何分层背景 */
+  .gObs{position:absolute;width:11%;aspect-ratio:1;transform-origin:50% 50%;
+    will-change:transform,left,top;pointer-events:none}
+  .gObs .art{position:absolute;left:50%;top:50%;width:100%;height:100%;
+    transform:translate(-50%,-50%);
+    filter:drop-shadow(0 7px 9px rgba(90,66,40,.34))}
+  .gObs.donut .art{transform:translate(-50%,-50%) scale(.9)}
+  .gObs.stack{width:8.6%}        /* 两格各一个独立小点心，略缩小让层与层清晰分开 */
+  .gObs svg{display:block;width:100%;height:100%}
+
+  /* 马头的当前坐标贴纸：直接写明我在哪一格 */
+  #gMe{position:absolute;left:50%;bottom:40%;z-index:12;pointer-events:none;
+    transform:translateX(-50%) rotate(-1.5deg);white-space:nowrap;
+    padding:6px 14px;border-radius:14px 16px 13px 15px;
+    font-size:14px;font-weight:600;color:#6b4522;
+    background:linear-gradient(180deg,#fffaf0,#f7e7c9);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.5),0 6px 12px rgba(110,80,44,.22)}
+  #gMe b{color:#e0912e;font-weight:800}
+
+  /* 第一人称马头 */
+  #gHorse{position:absolute;left:50%;bottom:-3%;width:min(40%,440px);
+    transform:translateX(-50%);z-index:10;pointer-events:none;
+    filter:drop-shadow(0 -4px 12px rgba(90,66,40,.3));will-change:transform}
+  #gHorse svg{display:block;width:100%;height:auto}
+
+  /* 高度计：竖排三点，当前层点亮 */
+  #gMeter{position:absolute;left:22px;top:50%;transform:translateY(-50%);z-index:12;
+    display:flex;flex-direction:column;align-items:center;gap:9px;padding:12px 9px;
+    border-radius:999px;background:rgba(255,250,238,.82);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.5),0 8px 18px rgba(110,80,44,.22)}
+  #gMeter::before,#gMeter::after{font-size:11px;line-height:1;color:#9a8261;letter-spacing:1px}
+  #gMeter::before{content:'高';margin-bottom:-3px}
+  #gMeter::after{content:'低';margin-top:-3px}
+  #gMeter i{width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.6);
+    box-shadow:inset 0 0 0 1.5px rgba(200,172,130,.55);
+    transition:transform .18s,box-shadow .18s,background .18s}
+  #gMeter i.on{background:linear-gradient(180deg,#f6c46a,#e39a3f);transform:scale(1.22);
+    box-shadow:0 0 0 2px #fff8e8,0 0 14px 5px rgba(255,240,190,.85),0 3px 6px rgba(150,100,40,.4)}
+  /* 换列 / 升降时浮现的方向箭头 */
+  #gHint{position:absolute;left:50%;bottom:31%;z-index:14;pointer-events:none;opacity:0;
+    font-size:48px;font-weight:700;color:#e0912e;transform:translateX(-50%);
+    text-shadow:-3px 0 0 #fffdf4,3px 0 0 #fffdf4,0 -3px 0 #fffdf4,0 3px 0 #fffdf4,
+      -2px -2px 0 #fffdf4,2px 2px 0 #fffdf4,2px -2px 0 #fffdf4,-2px 2px 0 #fffdf4,
+      0 7px 14px rgba(150,100,40,.3)}
+  #gHint.pop{animation:hintPop .6s ease-out both}
+  @keyframes hintPop{
+    0%{opacity:0;transform:translate(-50%,12px) scale(.5)}
+    18%{opacity:1;transform:translate(-50%,0) scale(1.18)}
+    42%{opacity:1;transform:translate(-50%,-6px) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-38px) scale(.92)}}
+
+  /* HUD */
+  #gHud{position:absolute;left:0;right:0;top:0;padding:18px 24px;z-index:12;
+    display:flex;align-items:center;gap:18px}
+  #gStars{display:flex;gap:6px}
+  #gStars svg{width:32px;height:32px;filter:drop-shadow(0 3px 3px rgba(120,88,44,.3))}
+  #gStars svg.lit{animation:starPop .55s cubic-bezier(.34,1.5,.5,1) both}
+  @keyframes starPop{0%{transform:scale(.3) rotate(-40deg)}100%{transform:scale(1) rotate(0)}}
+  #gTime{margin-left:auto;font-size:19px;letter-spacing:.08em;color:#6b5638;white-space:nowrap;
+    background:rgba(255,250,238,.85);padding:7px 17px;border-radius:999px;
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.5),0 6px 14px rgba(110,80,44,.2)}
+  #gExit{padding:8px 17px;border:none;border-radius:999px;cursor:pointer;
+    font-family:inherit;font-size:15px;color:#6b4a29;
+    background:linear-gradient(180deg,#fffaef,#f0e2c8);
+    box-shadow:0 4px 0 #d3b288,0 8px 14px rgba(120,88,48,.24),inset 0 1px 0 #fffdf7}
+  #gExit:active{transform:translateY(3px)}
+  /* 暂停按钮：与返回/音乐同一排，暂停态换成「继续」+ 播放图标 */
+  .gPauseBtn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border:none;
+    border-radius:999px;cursor:pointer;font-family:inherit;font-size:15px;color:#6b4a29;
+    background:linear-gradient(180deg,#fffaef,#f0e2c8);
+    box-shadow:0 4px 0 #d3b288,0 8px 14px rgba(120,88,48,.24),inset 0 1px 0 #fffdf7;
+    transition:transform .12s,filter .18s}
+  .gPauseBtn:active{transform:translateY(3px);box-shadow:0 1px 0 #d3b288}
+  .gPauseBtn svg{width:15px;height:15px;flex:none}
+  .gPauseBtn .icoPlay{display:none}
+  .gPauseBtn.paused .icoPause{display:none}
+  .gPauseBtn.paused .icoPlay{display:block}
+  .gPauseBtn.paused{background:linear-gradient(180deg,#fff3d4,#f4cf85);
+    box-shadow:0 4px 0 #d7a54e,0 8px 14px rgba(150,104,44,.3),inset 0 1px 0 #fffbe9}
+  .gPauseStat{font-size:14px;color:#8a7150;background:rgba(255,250,238,.7);
+    border-radius:12px;padding:9px 14px;margin:0 0 18px;
+    box-shadow:inset 0 0 0 1px rgba(214,182,134,.5)}
+
+  /* 3×3 位置格板：行列都有坐标，一眼读出「我」和「点心」各占哪格 */
+  #gGrid{position:absolute;right:18px;bottom:18px;z-index:12;
+    display:grid;grid-template-columns:22px repeat(3,34px);
+    grid-template-rows:18px repeat(3,34px) auto;gap:5px;padding:11px 12px;
+    border-radius:18px;background:rgba(255,250,238,.88);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.5),0 8px 18px rgba(110,80,44,.22)}
+  .gAx{display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:600;color:#9a8261;letter-spacing:.04em}
+  .gAx.on{color:#e0912e;font-weight:800;text-shadow:0 0 8px rgba(246,196,106,.8)}
+  #gGrid b{position:relative;display:flex;align-items:center;justify-content:center;
+    border-radius:9px;background:rgba(255,255,255,.6);
+    box-shadow:inset 0 0 0 1px rgba(200,172,130,.5);
+    font-size:16px;font-weight:700;color:#fff}
+  #gGrid b.mycol{background:rgba(255,240,200,.9)}
+  #gGrid b.mylane{background:rgba(255,246,222,.85)}   /* 当前行：与「列」对称的选中高亮 */
+  #gGrid b.danger{background:rgba(226,126,92,.72)}
+  #gGrid b.danger::after{content:'✕';color:#fff;text-shadow:0 1px 2px rgba(150,60,30,.6)}
+  #gGrid b.me{background:linear-gradient(180deg,#f6c46a,#e39a3f);
+    box-shadow:0 0 0 2px #fff8e8,0 3px 6px rgba(150,100,40,.4)}
+  #gGrid b.me::after{content:'我';font-size:15px;color:#7a4a18;text-shadow:0 1px 0 #fff3d0}
+  #gGrid b.me.danger{box-shadow:0 0 0 2px #fff8e8,0 0 0 4px rgba(224,86,56,.9),0 3px 6px rgba(150,100,40,.4)}
+  #gGrid b.me.danger::after{content:'!';color:#a8412a;text-shadow:0 1px 0 #fff3d0}
+  .gGridKey{grid-column:1/-1;text-align:center;font-size:10.5px;color:#9a8261;
+    padding-top:2px;white-space:nowrap}
+
+  /* 躲避计数 */
+  #gDodged{font-size:14px;letter-spacing:.03em;color:#7a6240;white-space:nowrap;
+    background:rgba(255,250,238,.82);padding:7px 14px;border-radius:999px;
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.45)}
+  #gDodged b{font-size:18px;color:#e0912e;margin-left:3px}
+
+  /* 逼近预警：屏幕边缘泛红，越近越亮 */
+  #gWarn{position:absolute;inset:0;z-index:11;pointer-events:none;opacity:0;
+    background:radial-gradient(125% 88% at 50% 54%,transparent 48%,rgba(222,88,58,.68) 100%);
+    transition:opacity .14s}
+  #gWarn.pulse{animation:warnPulse .68s ease-in-out infinite}
+  @keyframes warnPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.4)}}
+
+  /* 中央操作提示：现在安不安全、该按哪个键 */
+  #gCue{position:absolute;left:50%;top:76px;z-index:13;pointer-events:none;
+    display:flex;align-items:center;gap:9px;padding:9px 19px;border-radius:999px;
+    font-size:16px;font-weight:600;white-space:nowrap;color:#6b4522;
+    opacity:0;transform:translate(-50%,-9px);transition:opacity .18s,transform .18s;
+    background:linear-gradient(180deg,#fffaf0,#f3e6cd);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.5),0 10px 22px rgba(110,80,44,.25)}
+  #gCue.on{opacity:1;transform:translate(-50%,0)}
+  #gCue .cueIco{font-size:23px;line-height:1;font-weight:700}
+  #gCue.safe{color:#4e7032;background:linear-gradient(180deg,#f3fbe8,#e2f0cc);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(148,190,108,.6),0 10px 22px rgba(80,110,44,.22)}
+  #gCue.danger{color:#a83e26;background:linear-gradient(180deg,#fff0e5,#ffd7c1);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(224,96,64,.62),0 10px 24px rgba(160,60,32,.32);
+    animation:cueShake .5s ease-in-out infinite}
+  @keyframes cueShake{0%,100%{margin-left:0}25%{margin-left:-3px}75%{margin-left:3px}}
+  #gTouch button.cue{background:linear-gradient(180deg,#fff0d4,#f8c674);
+    box-shadow:0 0 0 3px #fff8e8,0 0 0 6px rgba(226,140,58,.72),0 4px 0 #d3b288,0 8px 16px rgba(120,88,48,.3)}
+
+  /* 躲过瞬间：金色涟漪 + 飘字 */
+  #gRing{position:absolute;left:50%;bottom:8%;width:32%;aspect-ratio:2.6/1;z-index:11;
+    pointer-events:none;opacity:0;border-radius:50%;transform:translateX(-50%) scale(.35);
+    border:6px solid rgba(255,212,116,.92);
+    box-shadow:0 0 24px rgba(255,200,100,.7),inset 0 0 20px rgba(255,220,140,.6)}
+  #gRing.go{animation:ringGo .6s ease-out}
+  @keyframes ringGo{0%{opacity:.9;transform:translateX(-50%) scale(.35)}
+    100%{opacity:0;transform:translateX(-50%) scale(1.5)}}
+  #gPop{position:absolute;inset:0;z-index:14;pointer-events:none}
+  #gPop span{position:absolute;left:50%;bottom:27%;white-space:nowrap;
+    font-size:27px;font-weight:700;color:#e0912e;transform:translateX(-50%);
+    text-shadow:-3px 0 0 #fffdf4,3px 0 0 #fffdf4,0 -3px 0 #fffdf4,0 3px 0 #fffdf4,
+      -2px -2px 0 #fffdf4,2px 2px 0 #fffdf4,2px -2px 0 #fffdf4,-2px 2px 0 #fffdf4,
+      0 7px 14px rgba(150,100,40,.3);
+    animation:popUp .9s ease-out both}
+  #gPop span.clutch{color:#d8643c;font-size:30px}
+  @keyframes popUp{0%{opacity:0;transform:translate(-50%,14px) scale(.6)}
+    16%{opacity:1;transform:translate(-50%,0) scale(1.16)}
+    60%{opacity:1}100%{opacity:0;transform:translate(-50%,-54px) scale(1)}}
+  html.instant #gPop span{animation:none!important;opacity:1!important;
+    transform:translate(-50%,-14px)!important}
+  html.instant #gRing.go{animation:none!important;opacity:.85!important;
+    transform:translateX(-50%) scale(.95)!important}
+  html.instant #gCue,html.instant #gWarn{transition:none!important}
+
+  #gFlash{position:absolute;inset:0;z-index:15;pointer-events:none;opacity:0;
+    background:radial-gradient(circle at 50% 72%,rgba(255,255,255,.92),rgba(240,150,110,.5) 60%,transparent 80%)}
+  #gFlash.hit{animation:gHit .55s ease-out}
+  @keyframes gHit{0%{opacity:.95}100%{opacity:0}}
+
+  /* 触屏方向键 */
+  #gTouch{position:absolute;left:0;right:0;bottom:16px;z-index:13;display:none;
+    justify-content:space-between;padding:0 20px;pointer-events:none}
+  .gPad{display:flex;gap:12px;pointer-events:none}
+  #gTouch button{pointer-events:auto;width:60px;height:60px;border:none;border-radius:50%;
+    font-family:inherit;font-size:30px;line-height:1;color:#6b4a29;cursor:pointer;
+    background:linear-gradient(180deg,#fffaef,#f2e1c3);
+    box-shadow:0 4px 0 #d3b288,0 8px 16px rgba(120,88,48,.28),inset 0 1px 0 #fffdf7}
+  #gTouch button:active{transform:translateY(3px);box-shadow:0 1px 0 #d3b288}
+  @media (max-width:820px),(pointer:coarse){#gTouch{display:flex}}
+  @media (max-width:640px){
+    #gHud{padding:12px 14px;gap:10px}
+    #gStars{gap:4px}
+    #gStars svg{width:24px;height:24px}
+    #gTime{font-size:14px;padding:6px 12px;letter-spacing:.04em}
+    #gExit{padding:6px 12px;font-size:13px}
+    .gPauseBtn{padding:6px 11px;font-size:13px}
+    .gPauseBtn .pzLabel{display:none}
+    #gHud{flex-wrap:wrap}
+    #gGrid{right:12px;bottom:100px;padding:8px 9px;gap:4px;
+      grid-template-columns:18px repeat(3,24px);grid-template-rows:15px repeat(3,24px) auto}
+    #gGrid b{font-size:13px}
+    .gAx{font-size:10px}
+    .gGridKey{font-size:9px}
+    #gMe{font-size:12px;padding:5px 10px;bottom:40%}
+    .gObsTag{padding:4px 8px}
+    .gObsTag b{font-size:11px}
+    .gObsTag span{font-size:10px}
+    #gMeter{left:10px;padding:9px 7px;gap:7px}
+    #gMeter i{width:15px;height:15px}
+    #gLaneBand{width:130%;height:18%}
+    .sndBtn{font-size:12px;padding:6px 11px}
+    #topHud{top:10px;right:10px}
+    #starBank{min-width:158px;padding:8px 11px 9px}
+    #starBank .sbStar{width:22px;height:22px}
+    #starBank .sbNum b{font-size:20px}
+    #starBank .sbTitle{font-size:10px}
+    #gHint{font-size:40px}
+    #gDodged{font-size:12px;padding:5px 10px}
+    #gDodged b{font-size:14px}
+    #gCue{top:62px;font-size:14px;padding:7px 13px}
+    #gCue .cueIco{font-size:19px}
+    #gPop span{font-size:22px}
+    #gTouch{bottom:12px}
+    #gTouch button{width:52px;height:52px;font-size:26px}
+    .gCard{padding:22px 18px}
+    .gCard h2{font-size:22px}
+    .gCard p{font-size:13.5px}
+    .gLegend{gap:7px}
+    .gLegend svg{width:38px;height:38px}
+    .gLegend .pics svg{width:31px;height:31px;margin:0 -2px}
+    .gLegend b{font-size:13px}
+    .gLegend span{font-size:11px}
+    .gBtn{font-size:16px;padding:10px 20px}
+  }
+
+  /* 开始 / 结算面板 */
+  #gPanel{position:absolute;inset:0;z-index:20;display:none;
+    align-items:center;justify-content:center;background:rgba(60,44,28,.3)}
+  #gPanel.on{display:flex}
+  .gCard{width:min(90%,570px);min-width:0;max-height:92%;overflow:auto;padding:30px 34px 28px;
+    text-align:center;transform:rotate(-.6deg);
+    background:repeating-linear-gradient(135deg,rgba(184,150,108,.035) 0 2px,transparent 2px 6px),var(--paper);
+    border-radius:26px 30px 24px 28px/28px 24px 30px 26px;
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 5px rgba(214,182,134,.5),
+      9px 10px 0 -1px #efd9b2,9px 10px 0 0 rgba(196,158,108,.5),
+      0 26px 50px -12px rgba(80,58,32,.5)}
+  .gCard h2{margin:0 0 6px;font-size:28px;font-weight:600;color:#6b4522;letter-spacing:.04em}
+  .gCard p{margin:0 0 16px;font-size:15px;line-height:1.7;color:#8a7150}
+  .gLegend{display:flex;gap:10px;justify-content:center;margin:14px 0 18px}
+  .gLegend>div{flex:1;min-width:0;padding:12px 6px;border-radius:14px;background:rgba(255,255,255,.62);
+    box-shadow:inset 0 0 0 1px rgba(214,182,134,.55)}
+  .gLegend svg{width:48px;height:48px;display:block;margin:0 auto 6px}
+  .gLegend .pics{display:flex;justify-content:center;align-items:center;margin:0 auto 6px}
+  .gLegend .pics svg{width:40px;height:40px;margin:0 -3px}
+  .gLegend b{display:block;font-size:15px;color:#6b4522}
+  .gLegend span{display:block;font-size:12.5px;color:#a08460;margin-top:2px;word-break:break-word}
+  .gBtns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .gBtn{padding:12px 26px;border:none;border-radius:999px;cursor:pointer;
+    font-family:inherit;font-size:18px;font-weight:600;color:#6b4522;
+    background:linear-gradient(180deg,#fff3d4,#f4cf85);
+    box-shadow:0 4px 0 #d7a54e,0 9px 16px rgba(150,104,44,.3),inset 0 1px 0 #fffbe9;
+    transition:transform .12s}
+  .gBtn.ghost{background:linear-gradient(180deg,#fffaef,#efe4cd);
+    box-shadow:0 4px 0 #d3b288,0 9px 16px rgba(120,88,48,.24),inset 0 1px 0 #fffdf7}
+  .gBtn:active{transform:translateY(3px)}
+  .gStarsBig{display:flex;gap:8px;justify-content:center;margin:12px 0 18px}
+  .gStarsBig svg{width:46px;height:46px}
+
+  /* ---------- 声音开关：书页右上 + 游戏 HUD 各一枚，状态同步 ---------- */
+  .sndBtn{display:inline-flex;align-items:center;gap:7px;border:none;cursor:pointer;
+    font-family:inherit;font-size:14px;font-weight:600;color:#6b4a29;
+    padding:8px 15px;border-radius:999px;
+    background:linear-gradient(180deg,#fffaef,#f0e2c8);
+    box-shadow:0 4px 0 #d3b288,0 8px 14px rgba(120,88,48,.24),inset 0 1px 0 #fffdf7;
+    transition:transform .12s,filter .18s}
+  .sndBtn:active{transform:translateY(3px);box-shadow:0 1px 0 #d3b288}
+  .sndBtn svg{width:16px;height:16px;flex:none}
+  .sndBtn .mute{display:none}
+  .sndBtn.off{filter:grayscale(.6);opacity:.78}
+  .sndBtn.off .note{display:none}
+  .sndBtn.off .mute{display:block}
+  #sndBtn{position:fixed;top:14px;right:16px;z-index:150}
+
+  /* ---------- 当前高度层的「选中」奶白光带：与左中右跑道白阴影对称。
+     只有当前层这一条：奶白柔光 + 上下白色虚线（呼应跑道虚线），不做成三层背景 ---------- */
+  #gLaneBand{position:absolute;left:50%;top:53%;width:min(74%,860px);height:15%;
+    transform:translate(-50%,-50%);border-radius:20px;pointer-events:none;
+    background:radial-gradient(55% 62% at 50% 50%,
+      rgba(255,252,240,.8) 0%,rgba(255,252,240,.5) 46%,rgba(255,252,240,0) 80%);
+    border-top:2.5px dashed rgba(255,255,255,.9);
+    border-bottom:2.5px dashed rgba(255,255,255,.9);
+    will-change:top}
+
+  /* ============ 跷跷板 · 快速配平游戏 ============ */
+  #ss{position:fixed;inset:0;z-index:210;display:none;overflow:hidden;
+    background:linear-gradient(180deg,#d5e9f6 0%,#e9eee9 46%,#f3ead6 56%,#d9e6bd 100%);
+    font-family:"YouYuan","幼圆","Yuanti SC","STYuanti","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  #ss.on{display:block;animation:gFade .5s ease both}
+  html.instant #ss.on{animation:none}
+  #ssHill1{left:-16%;width:74%;height:32%;top:32%;background:#e7ddc1}
+  #ssHill2{right:-14%;width:82%;height:38%;top:28%;background:#dfe6c8}
+  #ssHill3{left:18%;width:70%;height:20%;top:42%;background:#ccdcb3}
+  #ssGround{position:absolute;left:-8%;right:-8%;top:66%;bottom:-14%;
+    border-radius:50% 50% 0 0/10% 10% 0 0;
+    background:
+      repeating-radial-gradient(circle at 50% 0%,rgba(255,255,255,.17) 0 3px,transparent 3px 44px),
+      linear-gradient(180deg,#dbe9be,#bdd89c 62%,#a8c888);
+    box-shadow:inset 0 5px 0 rgba(255,255,255,.65)}
+
+  /* 跷跷板主体：复用书页素材与支点比例，板随失衡旋转 */
+  #ssStage{position:absolute;left:50%;top:60%;width:min(74%,980px);aspect-ratio:1400/486;
+    transform:translate(-50%,-50%)}
+  #ssShadow{position:absolute;left:50%;bottom:-15%;width:78%;height:15%;
+    transform:translateX(-50%);border-radius:50%;pointer-events:none;
+    background:radial-gradient(50% 50% at 50% 50%,rgba(92,68,36,.42),rgba(92,68,36,0) 72%);
+    will-change:transform}
+  #ssBoard{position:absolute;left:-6.4286%;top:-18.5185%;width:112.857%;aspect-ratio:1580/666;
+    transform-origin:50.633% 55.105%;z-index:2;will-change:transform}
+  #ssBoard>img{position:absolute;inset:0;width:100%;height:100%}
+  .ssBear{position:absolute;transform-origin:50% 100%;will-change:transform;z-index:3}
+  #ssBearL{left:8.101%;top:calc(13.514% + 2px);width:15.696%;aspect-ratio:248/224}
+  #ssBearR{left:76.962%;top:calc(15.465% + 2px);width:14.557%;aspect-ratio:230/211}
+  .ssBear img{display:block;width:100%;height:100%}
+  #ssFrame{position:absolute;inset:0;width:100%;height:100%;z-index:4}
+
+  /* 题目卡（右端上方）：算式 + 3 秒倒计时条 */
+  #ssQ{position:absolute;right:4.5%;top:16%;z-index:10;padding:14px 22px 15px;text-align:center;
+    border-radius:20px 24px 18px 22px;transform:rotate(1.2deg);pointer-events:none;
+    background:repeating-linear-gradient(135deg,rgba(184,150,108,.05) 0 2px,transparent 2px 6px),var(--paper);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 5px rgba(214,182,134,.55),
+      8px 10px 0 -2px #efd9b2,0 18px 34px -10px rgba(80,58,32,.4)}
+  #ssQ .ssTag{display:inline-block;font-size:12.5px;font-weight:600;color:#8a7150;letter-spacing:.14em;
+    background:rgba(255,252,240,.9);border-radius:999px;padding:3px 12px;
+    box-shadow:0 0 0 1.5px rgba(214,182,134,.6)}
+  #ssQ .expr{font-size:clamp(30px,4.4vw,50px);font-weight:700;color:#a8412a;
+    letter-spacing:.05em;line-height:1.2;margin:8px 0 10px;white-space:nowrap;transition:color .2s}
+  #ssQ .bar{width:100%;height:12px;border-radius:99px;overflow:hidden;
+    background:rgba(120,90,50,.16);box-shadow:inset 0 1px 3px rgba(80,58,32,.28)}
+  #ssQ .bar i{display:block;height:100%;width:100%;border-radius:99px;
+    background:linear-gradient(90deg,#8fc98a,#63985c)}
+  #ssQ .bar i.low{background:linear-gradient(90deg,#e2724f,#c04b2f)}
+  #ssQ.low .expr{color:#c0392b}
+
+  /* 候选答案（左端上方）：剪纸数字按钮，键盘 1~4 对应 */
+  #ssAns{position:absolute;left:4.5%;top:17%;z-index:10;display:grid;
+    grid-template-columns:repeat(2,minmax(86px,116px));gap:13px}
+  .ssOpt{position:relative;height:76px;border:none;cursor:pointer;border-radius:16px 19px 15px 18px;
+    font-family:inherit;font-size:32px;font-weight:700;color:#6b4522;
+    background:repeating-linear-gradient(135deg,rgba(184,150,108,.04) 0 2px,transparent 2px 6px),
+      linear-gradient(180deg,#fffaef,#f2e3c6);
+    box-shadow:0 5px 0 #d3b288,0 10px 18px rgba(120,88,48,.25),inset 0 1px 0 #fffdf7;
+    transition:transform .1s,box-shadow .1s,filter .18s}
+  .ssOpt::after{content:attr(data-key);position:absolute;top:5px;right:8px;font-size:11.5px;font-weight:700;
+    color:#a08a64;background:rgba(255,255,255,.75);border-radius:8px;padding:1px 6px;
+    box-shadow:inset 0 0 0 1px rgba(214,182,134,.5)}
+  .ssOpt:active{transform:translateY(3px);box-shadow:0 2px 0 #d3b288}
+  .ssOpt.hit{background:linear-gradient(180deg,#eaf7df,#cfe8ba);color:#4a7a3a;
+    box-shadow:0 5px 0 #9cc284,0 10px 18px rgba(100,130,70,.25),inset 0 1px 0 #f4fbe9}
+  .ssOpt.miss{background:linear-gradient(180deg,#fce6dc,#f3c5b2);color:#a8412a;
+    box-shadow:0 5px 0 #cf8d72,0 10px 18px rgba(150,80,50,.25),inset 0 1px 0 #fff0e6}
+
+  /* HUD：星级 / 答对进度 / 平衡格 / 暂停·返回·音乐 */
+  #ssHud{position:absolute;left:0;right:0;top:0;padding:18px 24px;z-index:12;
+    display:flex;align-items:center;gap:16px}
+  #ssStars{display:flex;gap:6px}
+  #ssStars svg{width:30px;height:30px;filter:drop-shadow(0 3px 3px rgba(120,88,44,.3))}
+  #ssStars svg.lit{animation:starPop .55s cubic-bezier(.34,1.5,.5,1) both}
+  #ssOk,#ssLives{font-size:14.5px;color:#7a6240;white-space:nowrap;
+    background:rgba(255,250,238,.85);padding:7px 14px;border-radius:999px;
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.45)}
+  #ssOk b{color:#e0912e;font-size:17px}
+  #ssLives{display:flex;align-items:center;gap:6px}
+  #ssLives b{font-weight:700;margin-right:2px}
+  #ssLives i{width:15px;height:15px;border-radius:50%;
+    background:linear-gradient(180deg,#8fc98a,#5f9e57);
+    box-shadow:inset 0 0 0 2px #fffdf6,0 2px 4px rgba(90,120,60,.4);transition:background .3s}
+  #ssLives i.off{background:linear-gradient(180deg,#e5d9c2,#c9bda1)}
+  #ssPause{margin-left:auto}
+  #ssExit{padding:8px 17px;border:none;border-radius:999px;cursor:pointer;
+    font-family:inherit;font-size:15px;color:#6b4a29;
+    background:linear-gradient(180deg,#fffaef,#f0e2c8);
+    box-shadow:0 4px 0 #d3b288,0 8px 14px rgba(120,88,48,.24),inset 0 1px 0 #fffdf7}
+  #ssExit:active{transform:translateY(3px)}
+
+  /* 飘字 */
+  #ssPop{position:absolute;left:50%;top:31%;z-index:11;pointer-events:none}
+  #ssPop span{position:absolute;white-space:nowrap;font-size:26px;font-weight:700;
+    color:#4a7a3a;text-shadow:0 2px 0 #fffdf6,0 5px 12px rgba(120,88,48,.3);
+    animation:ssPopUp .95s ease both}
+  #ssPop span.bad{color:#c05a3a}
+  @keyframes ssPopUp{0%{opacity:0;transform:translate(-50%,14px)}
+    18%{opacity:1}100%{opacity:0;transform:translate(-50%,-36px)}}
+
+  /* 开始 / 结算 / 暂停面板（复用 .gCard/.gBtn/.gStarsBig/.gPauseStat 通用样式） */
+  #ssPanel{position:absolute;inset:0;z-index:20;display:none;
+    align-items:center;justify-content:center;background:rgba(60,44,28,.3)}
+  #ssPanel.on{display:flex}
+
+  @media (max-width:640px){
+    #ssHud{padding:10px 12px;gap:8px}
+    #ssStars{gap:4px} #ssStars svg{width:22px;height:22px}
+    #ssOk,#ssLives{font-size:12px;padding:5px 10px}
+    #ssOk b{font-size:14px}
+    #ssLives i{width:12px;height:12px}
+    #ssPause{padding:6px 11px;font-size:13px}
+    .gPauseBtn .pzLabel{display:none}
+    #ssExit{padding:6px 12px;font-size:13px}
+    #ssStage{width:96%;top:63%}
+    #ssQ{right:2.5%;top:12%;padding:9px 13px 11px}
+    #ssQ .expr{font-size:24px;margin:5px 0 7px}
+    #ssQ .bar{height:9px}
+    #ssAns{left:2.5%;top:13%;grid-template-columns:repeat(2,minmax(62px,86px));gap:9px}
+    .ssOpt{height:54px;font-size:23px;border-radius:13px}
+    .ssOpt::after{font-size:10px;padding:0 5px}
+    #ssPop{top:26%}
+    #ssPop span{font-size:19px}
+  }
+
+  /* ============ 秋千 · 荡高投掷游戏 ============ */
+  #sw{position:fixed;inset:0;z-index:220;display:none;overflow:hidden;
+    background:linear-gradient(180deg,#d5e9f6 0%,#e9eee9 40%,#f3ead6 56%,#d9e6bd 100%);
+    font-family:"YouYuan","幼圆","Yuanti SC","STYuanti","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  #sw.on{display:block;animation:gFade .5s ease both}
+  html.instant #sw.on{animation:none}
+  /* 相机：玩偶飞出时横向跟拍，秋千留在世界原点 */
+  #swCam{position:absolute;inset:0;will-change:transform}
+  #swWorld{position:absolute;left:32%;top:0;bottom:0;width:680%;pointer-events:none}
+  #swGround{position:absolute;left:-12%;right:-45%;top:78%;bottom:-14%;
+    background:repeating-radial-gradient(circle at 50% 0%,rgba(255,255,255,.15) 0 3px,transparent 3px 52px),
+      linear-gradient(180deg,#dbe9be,#bdd89c 62%,#a8c888);
+    box-shadow:inset 0 5px 0 rgba(255,255,255,.65)}
+  /* 米数刻度小纸牌：每 10 米一根 */
+  .swTick{position:absolute;top:65%;width:3px;height:13%;
+    background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.3));
+    border-radius:2px}
+  .swTick::after{content:attr(data-m);position:absolute;left:50%;top:-32px;
+    transform:translateX(-50%) rotate(-1deg);
+    font-size:15px;font-weight:700;color:#6b4522;white-space:nowrap;
+    padding:3px 9px;border-radius:9px 11px 8px 10px;background:rgba(255,250,238,.92);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 3.5px rgba(214,182,134,.55),0 4px 9px rgba(110,80,44,.22)}
+  /* 落地旗：插在玩偶落点，写米数与评级 */
+  #swFlag{position:absolute;top:78%;display:none;pointer-events:none;z-index:5}
+  #swFlag i{position:absolute;left:0;bottom:0;width:5px;height:66px;border-radius:3px;
+    background:#a8412a}
+  #swFlag b{position:absolute;left:5px;bottom:44px;padding:5px 12px;white-space:nowrap;
+    font-size:17px;font-weight:700;color:#fffdf6;border-radius:4px 14px 14px 4px;
+    background:linear-gradient(180deg,#e2724f,#c04b2f);
+    box-shadow:0 4px 10px rgba(120,50,20,.3)}
+  /* 秋千主体：摆动只转 #swPivot（绳+座板，绳顶为轴），玩偶坐座板上并保持头朝上 */
+  #swStage{position:absolute;z-index:2;pointer-events:none}
+  #swShadow{position:absolute;left:6%;bottom:-2.5%;width:88%;height:9%;border-radius:50%;
+    background:radial-gradient(50% 50% at 50% 50%,rgba(92,68,36,.4),rgba(92,68,36,0) 72%);z-index:1}
+  #swPivot{position:absolute;left:30.643%;top:7.496%;width:19%;aspect-ratio:266/895;
+    transform-origin:50% 3.02%;z-index:2;will-change:transform}
+  #swPivot>img{display:block;width:100%;height:100%}
+  #swBear{position:absolute;left:6%;bottom:2.2%;width:88%;will-change:transform}
+  #swBear img{display:block;width:100%;height:100%;object-fit:contain;
+    filter:drop-shadow(0 4px 6px rgba(90,66,40,.25))}
+  #swBear.help{animation:swHelp .5s ease-in-out infinite}
+  @keyframes swHelp{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+  #swFrame{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
+  /* 飞行/坠落中的玩偶（面朝右的侧坐小熊，与飞行方向一致） */
+  #swFly{position:absolute;z-index:6;display:none;will-change:left,top,transform}
+  #swFly img{display:block;width:100%;height:100%;object-fit:contain;
+    filter:drop-shadow(0 8px 10px rgba(90,66,40,.3))}
+
+  /* HUD */
+  #swHud{position:absolute;left:0;right:0;top:0;padding:18px 24px;z-index:30;
+    display:flex;align-items:center;gap:12px}
+  #swStars{display:flex;gap:6px}
+  #swStars svg{width:30px;height:30px;filter:drop-shadow(0 3px 3px rgba(120,88,44,.3))}
+  #swStars svg.lit{animation:starPop .55s cubic-bezier(.34,1.5,.5,1) both}
+  .swChip{font-size:14.5px;color:#7a6240;white-space:nowrap;
+    background:rgba(255,250,238,.85);padding:7px 14px;border-radius:999px;
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.45)}
+  .swChip b{color:#e0912e;font-size:16.5px}
+  #swPause{margin-left:auto}
+  #swExit{padding:8px 17px;border:none;border-radius:999px;cursor:pointer;
+    font-family:inherit;font-size:15px;color:#6b4a29;
+    background:linear-gradient(180deg,#fffaef,#f0e2c8);
+    box-shadow:0 4px 0 #d3b288,0 8px 14px rgba(120,88,48,.24),inset 0 1px 0 #fffdf7}
+  #swExit:active{transform:translateY(3px)}
+
+  /* 高度/能量计：竖条充能，顶部红虚线以上是危险区 */
+  #swPower{position:absolute;left:22px;top:50%;transform:translateY(-50%);z-index:30;
+    width:26px;height:42%;border-radius:999px;background:rgba(255,250,238,.85);
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 4px rgba(214,182,134,.5),0 8px 18px rgba(110,80,44,.22);
+    overflow:hidden}
+  #swPower::before,#swPower::after{position:absolute;left:0;right:0;text-align:center;
+    font-size:11px;color:#9a8261;z-index:2}
+  #swPower::before{content:'高';top:4px}
+  #swPower::after{content:'低';bottom:4px}
+  #swFill{position:absolute;left:3px;right:3px;bottom:3px;height:0%;
+    background:linear-gradient(180deg,#8fc98a,#f6c46a);border-radius:999px;
+    transition:height .08s linear}
+  #swDangerLine{position:absolute;left:0;right:0;height:0;
+    border-top:2.5px dashed rgba(192,75,47,.85)}
+  #swPower.danger #swFill{background:linear-gradient(180deg,#e2724f,#c04b2f)}
+
+  /* 危险预警红晕 */
+  #swWarn{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:25;transition:opacity .25s;
+    box-shadow:inset 0 0 80px 26px rgba(192,75,47,.5)}
+  #swWarn.on{opacity:1;animation:swPulse .8s ease-in-out infinite}
+  @keyframes swPulse{0%,100%{box-shadow:inset 0 0 70px 22px rgba(192,75,47,.4)}
+    50%{box-shadow:inset 0 0 110px 40px rgba(192,75,47,.72)}}
+
+  /* 戳球拯救 QTE */
+  #swBalls{position:absolute;inset:0;z-index:40;display:none}
+  #swBalls.on{display:block}
+  .swBall{position:absolute;width:74px;height:74px;border-radius:50%;cursor:pointer;border:none;
+    padding:0;background:radial-gradient(circle at 34% 30%,#fff6d8 0%,#f7c86a 55%,#e0912e 100%);
+    box-shadow:0 0 0 3px #fffdf6,0 0 0 6px rgba(214,182,134,.6),0 10px 18px rgba(120,80,40,.35);
+    animation:swBallIn .35s cubic-bezier(.34,1.5,.5,1) both}
+  .swBall::after{content:'';position:absolute;left:18%;top:14%;width:26%;height:18%;
+    border-radius:50%;background:rgba(255,255,255,.85);transform:rotate(-18deg)}
+  @keyframes swBallIn{from{transform:scale(0) rotate(-30deg)}to{transform:scale(1) rotate(0)}}
+  .swBall:active{transform:scale(.85)}
+  .swBall.gone{animation:swBallPop .3s ease both;pointer-events:none}
+  @keyframes swBallPop{to{transform:scale(1.7);opacity:0}}
+  #swBallBar{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:41;
+    width:min(60%,460px);display:none}
+  #swBallBar.on{display:block}
+  #swBallBar .lbl{text-align:center;font-size:17px;font-weight:700;color:#a8412a;margin-bottom:7px;
+    text-shadow:0 2px 0 #fffdf6,0 5px 12px rgba(120,88,48,.3)}
+  #swBallBar .bar{height:14px;border-radius:99px;overflow:hidden;background:rgba(120,90,50,.16);
+    box-shadow:inset 0 1px 3px rgba(80,58,32,.28)}
+  #swBallBar .bar i{display:block;height:100%;width:100%;border-radius:99px;
+    background:linear-gradient(90deg,#e2724f,#c04b2f)}
+
+  /* 底部按键：向后 / 投掷 / 向前 */
+  #swPad{position:absolute;left:0;right:0;bottom:16px;z-index:30;display:flex;
+    justify-content:center;align-items:flex-end;gap:16px}
+  .swKey{border:none;cursor:pointer;font-family:inherit;font-weight:700;color:#6b4522;
+    width:118px;height:76px;border-radius:18px 21px 16px 19px;font-size:25px;line-height:1.15;
+    background:repeating-linear-gradient(135deg,rgba(184,150,108,.04) 0 2px,transparent 2px 6px),
+      linear-gradient(180deg,#fffaef,#f2e3c6);
+    box-shadow:0 6px 0 #d3b288,0 12px 20px rgba(120,88,48,.28),inset 0 1px 0 #fffdf7;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    transition:transform .08s,box-shadow .08s}
+  .swKey small{font-size:11px;font-weight:600;color:#a08a64;letter-spacing:.1em}
+  .swKey:active,.swKey.press{transform:translateY(4px);box-shadow:0 2px 0 #d3b288}
+  .swKey.throw{width:150px;height:88px;font-size:30px;color:#fffdf6;
+    background:linear-gradient(180deg,#f6b653,#dd8f2f);
+    box-shadow:0 6px 0 #b06f1e,0 12px 20px rgba(150,90,30,.35),inset 0 1px 0 #ffdf9e}
+  .swKey.throw small{color:#fff1cf}
+  .swKey.throw.hot{animation:swHot .55s ease-in-out infinite}
+  @keyframes swHot{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
+
+  /* 飘字 */
+  #swPop{position:absolute;left:50%;top:30%;z-index:45;pointer-events:none}
+  #swPop span{position:absolute;white-space:nowrap;font-size:27px;font-weight:700;color:#4a7a3a;
+    text-shadow:0 2px 0 #fffdf6,0 5px 12px rgba(120,88,48,.3);animation:ssPopUp .95s ease both}
+  #swPop span.bad{color:#c05a3a}
+  #swPop span.gold{color:#e0912e}
+
+  /* 开始 / 结算 / 暂停面板 */
+  #swPanel{position:absolute;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+    background:rgba(60,44,28,.3)}
+  #swPanel.on{display:flex}
+  .swDist{display:flex;gap:8px;justify-content:center;margin:10px 0 16px}
+  .swDist div{flex:1;min-width:0;padding:9px 4px;border-radius:12px;background:rgba(255,255,255,.62);
+    box-shadow:inset 0 0 0 1px rgba(214,182,134,.55);font-size:12px;color:#a08460}
+  .swDist b{display:block;font-size:14.5px;color:#6b4522}
+
+  @media (max-width:640px){
+    #swHud{padding:10px 12px;gap:8px}
+    #swStars{gap:4px} #swStars svg{width:22px;height:22px}
+    .swChip{font-size:12px;padding:5px 10px} .swChip b{font-size:14px}
+    #swPause{padding:6px 11px;font-size:13px}
+    #swExit{padding:6px 12px;font-size:13px}
+    #swPower{left:10px;width:20px;height:36%}
+    #swPad{gap:10px;bottom:12px}
+    .swKey{width:88px;height:62px;font-size:20px;border-radius:14px}
+    .swKey.throw{width:112px;height:72px;font-size:24px}
+    .swTick::after{font-size:12px;top:-26px;padding:2px 7px}
+    #swFlag b{font-size:14px;padding:4px 9px}
+    .swBall{width:60px;height:60px}
+    #swBallBar{top:52px;width:76%}
+    #swPop{top:24%} #swPop span{font-size:20px}
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="book">
+    <div id="sky"></div>
+
+    <div class="layer plx" id="mtnFar"  data-depth="3"><img src="assets/mountain_far.webp"  alt=""></div>
+    <div class="layer plx" id="mtnNear" data-depth="5"><img src="assets/mountain_near.webp" alt=""></div>
+    <div class="layer plx" id="midGround" data-depth="8"><img src="assets/mid_ground.webp" alt=""></div>
+
+    <div class="layer plx" id="groundWrap" data-depth="12">
+      <img src="assets/ground.webp" alt=""><img class="flip" src="assets/ground.webp" alt=""><img src="assets/ground.webp" alt="">
+    </div>
+
+    <div class="layer plx pickable" id="carousel" data-depth="14">
+      <div class="horsesBack" id="horsesBack"></div>
+      <img id="carBody" src="assets/carousel_body.webp" alt="旋转木马">
+      <div class="horsesFront" id="horsesFront"></div>
+    </div>
+
+    <div class="layer plx pickable" id="seesaw" data-depth="16">
+      <div id="seesawBoard">
+        <img src="assets/seesaw_board.webp" alt="">
+        <div class="sBear" id="sBearL"><img src="assets/seesaw_bear_l.webp" alt=""></div>
+        <div class="sBear" id="sBearR"><img src="assets/seesaw_bear_r.webp" alt=""></div>
+      </div>
+      <img id="seesawFrame" src="assets/seesaw_frame.webp" alt="">
+      <div id="seesawHitL"></div>
+      <div id="seesawHitR"></div>
+      <div id="seesawHint">点一下压下去</div>
+    </div>
+
+    <div class="layer plx pickable" id="swing" data-depth="16">
+      <div class="seat" id="seatA"><img src="assets/swing_seat_a.webp" alt="秋千"></div>
+      <div class="seat" id="seatB"><img src="assets/swing_seat_b.webp" alt="秋千"></div>
+      <img id="swingFrame" src="assets/swing_frame.webp" alt="">
+    </div>
+
+    <div class="layer plx" id="flowerWrap" data-depth="22">
+      <img src="assets/foreground_flowers.webp" alt=""><img class="flip" src="assets/foreground_flowers.webp" alt="">
+    </div>
+
+    <div class="bear plx" id="bearA" data-depth="24"><img src="assets/bear.webp" alt="小熊"></div>
+    <div class="layer plx" id="balloons" data-depth="26"><img src="assets/balloons.webp" alt="气球"></div>
+    <div class="bear plx" id="bearB" data-depth="24"><img src="assets/bear.webp" alt="小熊"></div>
+
+    <div class="bubble" id="bubble" role="dialog" aria-live="polite">
+      <span class="tag" id="bubbleTag">小熊</span>
+      <span class="txt" id="bubbleText"></span>
+      <span class="gift" id="bubbleGift" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M20 8 h24 v6 h-24 z" fill="#d9a441"/>
+          <rect x="9" y="14" width="46" height="44" rx="12" fill="#f4b53c" stroke="#fffaf0" stroke-width="3"/>
+          <rect x="9" y="30" width="46" height="14" fill="#fff3cf" opacity=".85"/>
+          <path d="M32 34 q6 0 8 5 q-4 6 -8 6 q-4 0 -8 -6 q2 -5 8 -5 z" fill="#e0912e"/>
+          <circle cx="19" cy="22" r="3" fill="#fff3cf"/><circle cx="45" cy="22" r="3" fill="#fff3cf"/></svg>
+      </span>
+      <span class="foot">
+        <span class="next" id="bubbleNext">轻点继续 ›</span>
+        <button class="play" id="bubblePlay" type="button">开始游戏<i>›</i></button>
+      </span>
+    </div>
+
+    <button id="rideBtn" aria-pressed="false">
+      <span class="ico"></span><span id="rideLabel">让木马转起来</span><span class="dot"></span>
+    </button>
+  </div>
+</div>
+<div id="topHud">
+  <div id="starBank" title="点一下看每个游戏的星星" role="button" tabindex="0" aria-label="收集星星进度">
+    <div class="sbHead">
+      <svg class="sbStar" viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M50 6 L62 38 L96 40 L69 60 L79 94 L50 74 L21 94 L31 60 L4 40 L38 38 Z"
+          fill="#f5b942" stroke="#fffaf0" stroke-width="6" stroke-linejoin="round"/></svg>
+      <span class="sbNum"><b id="sbCount">0</b> / 15</span>
+      <span class="sbTitle" id="sbTitle">收集星星</span>
+    </div>
+    <div class="sbBar" id="sbBar"></div>
+    <div class="sbDetail" id="sbDetail"></div>
+    <div class="sbTip" id="sbTip">点一下看每个游戏 ↗</div>
+  </div>
+  <button id="sndBtn" class="sndBtn" aria-pressed="true" title="音乐与音效开关">
+    <svg class="note" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l9-2.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.3" cy="17.5" r="2.9" fill="currentColor"/><circle cx="15.3" cy="15" r="2.9" fill="currentColor"/></svg>
+    <svg class="mute" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l9-2.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.3" cy="17.5" r="2.9" fill="currentColor"/><circle cx="15.3" cy="15" r="2.9" fill="currentColor"/><line x1="4" y1="4" x2="20" y2="20" stroke="#b3543c" stroke-width="2.6" stroke-linecap="round"/></svg>
+    <span>音乐</span>
+  </button>
+</div>
+<div id="hint">快来和小熊、摩天轮、跷跷板以及秋千互动吧！</div>
+<div id="rotateTip">横过来看，立体感更好</div>
+
+<!-- ============ 旋转木马骑乘游戏 ============ -->
+<div id="game" aria-hidden="true">
+  <div id="gRide">
+   <div id="gCam">
+    <div id="gSky"></div>
+    <div class="gHill" id="gHill1"></div>
+    <div class="gHill" id="gHill2"></div>
+    <div class="gHill" id="gHill3"></div>
+    <div id="gGround"></div>
+    <div id="gLaneBand"></div>
+    <svg id="gRails" viewBox="0 0 1000 600" preserveAspectRatio="none">
+      <g id="gLaneG">
+        <polygon class="gLane" points="500,332 80,600 360,600"/>
+        <polygon class="gLane" points="500,332 360,600 640,600"/>
+        <polygon class="gLane" points="500,332 640,600 920,600"/>
+      </g>
+      <g stroke="rgba(255,255,255,.68)" stroke-width="2" stroke-dasharray="9 11">
+        <line x1="500" y1="330" x2="80"  y2="600"/>
+        <line x1="500" y1="330" x2="360" y2="600"/>
+        <line x1="500" y1="330" x2="640" y2="600"/>
+        <line x1="500" y1="330" x2="920" y2="600"/>
+      </g>
+    </svg>
+    <div id="gWorld"></div>
+   </div>
+   <div id="gShadow"></div>
+   <div id="gHorse"></div>
+  </div>
+
+  <div id="gHud">
+    <div id="gStars"></div>
+    <div id="gDodged">已躲开 <b>0</b></div>
+    <div id="gTime">00:00 / 05:00</div>
+    <button id="gPause" class="gPauseBtn" aria-pressed="false" title="暂停游戏（ESC）">
+      <svg class="icoPause" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="5" height="18" rx="1.6" fill="currentColor"/><rect x="14" y="3" width="5" height="18" rx="1.6" fill="currentColor"/></svg>
+      <svg class="icoPlay" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5 L20 12 L6 20.5 Z" fill="currentColor" stroke-linejoin="round"/></svg>
+      <span class="pzLabel">暂停</span>
+    </button>
+    <button id="gExit">返回 ×</button>
+    <button id="gSnd" class="sndBtn" aria-pressed="true" title="音乐与音效开关">
+      <svg class="note" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l9-2.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.3" cy="17.5" r="2.9" fill="currentColor"/><circle cx="15.3" cy="15" r="2.9" fill="currentColor"/></svg>
+      <svg class="mute" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l9-2.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.3" cy="17.5" r="2.9" fill="currentColor"/><circle cx="15.3" cy="15" r="2.9" fill="currentColor"/><line x1="4" y1="4" x2="20" y2="20" stroke="#b3543c" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <span>音乐</span>
+    </button>
+  </div>
+  <div id="gMe">我 · <b>中列 中层</b></div>
+  <div id="gGrid" aria-label="位置格板">
+    <span class="gAx"></span><span class="gAx col">左</span><span class="gAx col">中</span><span class="gAx col">右</span>
+    <span class="gAx row">上</span><b></b><b></b><b></b>
+    <span class="gAx row">中</span><b></b><b></b><b></b>
+    <span class="gAx row">下</span><b></b><b></b><b></b>
+    <div class="gGridKey">金=我　橙 ✕=点心挡路</div>
+  </div>
+  <div id="gMeter" aria-label="当前高度"><i></i><i></i><i></i></div>
+  <div id="gHint"></div>
+  <div id="gWarn"></div>
+  <div id="gRing"></div>
+  <div id="gPop"></div>
+  <div id="gCue"><span class="cueIco"></span><span class="cueTxt"></span></div>
+  <div id="gFlash"></div>
+
+  <div id="gTouch">
+    <div class="gPad"><button data-dir="left">‹</button><button data-dir="right">›</button></div>
+    <div class="gPad"><button data-dir="down">⌄</button><button data-dir="up">⌃</button></div>
+  </div>
+
+  <div id="gPanel"><div class="gCard" id="gCard"></div></div>
+</div>
+
+<!-- 跷跷板 · 快速配平游戏 -->
+<div id="ss" aria-hidden="true">
+  <div class="gHill" id="ssHill1"></div>
+  <div class="gHill" id="ssHill2"></div>
+  <div class="gHill" id="ssHill3"></div>
+  <div id="ssGround"></div>
+
+  <div id="ssStage">
+    <div id="ssShadow"></div>
+    <div id="ssBoard">
+      <img src="assets/seesaw_board.webp" alt="">
+      <div class="ssBear" id="ssBearL"><img src="assets/seesaw_bear_l.webp" alt=""></div>
+      <div class="ssBear" id="ssBearR"><img src="assets/seesaw_bear_r.webp" alt=""></div>
+    </div>
+    <img id="ssFrame" src="assets/seesaw_frame.webp" alt="">
+  </div>
+
+  <div id="ssQ">
+    <span class="ssTag">配平考题</span>
+    <div class="expr" id="ssExpr">3 + 4 = ?</div>
+    <div class="bar"><i id="ssBar"></i></div>
+  </div>
+
+  <div id="ssAns" aria-label="候选答案"></div>
+
+  <div id="ssHud">
+    <div id="ssStars"></div>
+    <div id="ssOk">答对 <b>0</b> / 25</div>
+    <div id="ssLives"><b>平衡</b></div>
+    <button id="ssPause" class="gPauseBtn" aria-pressed="false" title="暂停游戏（ESC）">
+      <svg class="icoPause" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="5" height="18" rx="1.6" fill="currentColor"/><rect x="14" y="3" width="5" height="18" rx="1.6" fill="currentColor"/></svg>
+      <svg class="icoPlay" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5 L20 12 L6 20.5 Z" fill="currentColor" stroke-linejoin="round"/></svg>
+      <span class="pzLabel">暂停</span>
+    </button>
+    <button id="ssExit">返回 ×</button>
+    <button id="ssSnd" class="sndBtn" aria-pressed="true" title="音乐与音效开关">
+      <svg class="note" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l9-2.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.3" cy="17.5" r="2.9" fill="currentColor"/><circle cx="15.3" cy="15" r="2.9" fill="currentColor"/></svg>
+      <svg class="mute" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l9-2.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.3" cy="17.5" r="2.9" fill="currentColor"/><circle cx="15.3" cy="15" r="2.9" fill="currentColor"/><line x1="4" y1="4" x2="20" y2="20" stroke="#b3543c" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <span>音乐</span>
+    </button>
+  </div>
+
+  <div id="ssPop"></div>
+
+  <div id="ssPanel"><div class="gCard" id="ssCard"></div></div>
+</div>
+
+<!-- 秋千 · 荡高投掷游戏 -->
+<div id="sw" aria-hidden="true">
+  <div id="swCam">
+    <div id="swWorld">
+      <div id="swGround"></div>
+      <div id="swTicks"></div>
+      <div id="swStage">
+        <div id="swShadow"></div>
+        <div id="swPivot">
+          <img src="assets/swing_seat_a.webp" alt="">
+          <div id="swBear"><img src="assets/seesaw_bear_l.webp" alt="玩偶小熊"></div>
+        </div>
+        <img id="swFrame" src="assets/swing_frame.webp" alt="">
+      </div>
+      <div id="swFly"><img src="assets/seesaw_bear_l.webp" alt=""></div>
+      <div id="swFlag"><i></i><b></b></div>
+    </div>
+  </div>
+
+  <div id="swWarn"></div>
+  <div id="swPower"><div id="swFill"></div><div id="swDangerLine"></div></div>
+
+  <div id="swHud">
+    <div id="swStars"></div>
+    <div class="swChip" id="swBest">最好 <b>—</b></div>
+    <div class="swChip" id="swThrows">第 <b>1</b> 掷</div>
+    <button id="swPause" class="gPauseBtn" aria-pressed="false" title="暂停游戏（ESC）">
+      <svg class="icoPause" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="5" height="18" rx="1.6" fill="currentColor"/><rect x="14" y="3" width="5" height="18" rx="1.6" fill="currentColor"/></svg>
+      <svg class="icoPlay" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5 L20 12 L6 20.5 Z" fill="currentColor" stroke-linejoin="round"/></svg>
+      <span class="pzLabel">暂停</span>
+    </button>
+    <button id="swExit">返回 ×</button>
+    <button id="swSnd" class="sndBtn" aria-pressed="true" title="音乐与音效开关">
+      <svg class="note" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l9-2.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.3" cy="17.5" r="2.9" fill="currentColor"/><circle cx="15.3" cy="15" r="2.9" fill="currentColor"/></svg>
+      <svg class="mute" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l9-2.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.3" cy="17.5" r="2.9" fill="currentColor"/><circle cx="15.3" cy="15" r="2.9" fill="currentColor"/><line x1="4" y1="4" x2="20" y2="20" stroke="#b3543c" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <span>音乐</span>
+    </button>
+  </div>
+
+  <div id="swBalls"></div>
+  <div id="swBallBar"><div class="lbl">小熊快抓不住了！戳破彩球救它！</div><div class="bar"><i></i></div></div>
+  <div id="swPop"></div>
+
+  <div id="swPad">
+    <button class="swKey" id="swBack"><span>⬇ 向后</span><small>↓ / S</small></button>
+    <button class="swKey throw" id="swThrowBtn"><span>投掷</span><small>空格</small></button>
+    <button class="swKey" id="swFwd"><span>⬆ 向前</span><small>↑ / W</small></button>
+  </div>
+
+  <div id="swPanel"><div class="gCard" id="swCard"></div></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+
+const stage = $('stage'), carousel = $('carousel'), carBody = $('carBody');
+const hBack = $('horsesBack'), hFront = $('horsesFront');
+const rideBtn = $('rideBtn'), rideLbl = $('rideLabel');
+const sBoard = $('seesawBoard'), sBearL = $('sBearL'), sBearR = $('sBearR');
+const balloons = $('balloons');
+
+/* ---------- 声音：Web Audio 程序化合成。零素材、file:// 双击可用；
+   截图 / 自检等自动化态（#hash 带调试字样）完全静默，绝不影响无头验证 ---------- */
+const SND_AUTO = /(selftest|shot|game|ss|sw)/.test(location.hash);
+const MELODY = [659,784,880,0, 784,659,587,0, 587,659,784,0, 659,587,523,0,
+                659,784,880,1047, 880,784,659,0, 523,587,659,784, 659,587,523,0];
+const ROOT   = [262,262,196,220, 262,262,175,196];    /* 每 4 拍一个低音垫 */
+const Snd = {
+  ac:null, master:null, timer:null, mood:'calm', on:true, i:0, nextT:0, calls:0,
+  ensure(){                      /* 首次用户手势解锁 AudioContext（浏览器自动播放策略） */
+    if(SND_AUTO || this.ac || !this.on) return;
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC){ this.on = false; return; }
+      this.ac = new AC();
+      this.master = this.ac.createGain();
+      this.master.gain.value = .9;
+      this.master.connect(this.ac.destination);
+      if(this.ac.state === 'suspended') this.ac.resume().catch(()=>{});
+      this.nextT = this.ac.currentTime + .15;
+      this.timer = setInterval(()=>this.tick(), 40);
+    }catch(e){ this.ac = null; }
+  },
+  tick(){                        /* BGM 前瞻调度：五声音阶八音盒小旋律循环 */
+    if(!this.ac || !this.on) return;
+    const beat = this.mood === 'play' ? .30 : .38;
+    try{
+      while(this.nextT < this.ac.currentTime + .15){
+        this.melody(this.i++, this.nextT, beat);
+        this.nextT += beat;
+      }
+    }catch(e){}
+  },
+  melody(i, t, beat){
+    const f = MELODY[i % MELODY.length];
+    if(f){
+      this.note(f, t, beat*1.8, .05, 'triangle', true);
+      if(i % 4 === 0) this.note(ROOT[(i/4|0) % ROOT.length], t, beat*4.6, .024, 'sine');
+    }
+  },
+  note(f, t, dur, vol, type, sparkle, glide){
+    const c = this.ac, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if(glide) o.frequency.exponentialRampToValueAtTime(glide, t + dur);
+    o.connect(g); g.connect(this.master);
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + .016);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.start(t); o.stop(t + dur + .05);
+    if(sparkle){                 /* 高八度泛音 → 八音盒的「叮」感 */
+      const o2 = c.createOscillator(), g2 = c.createGain();
+      o2.type = 'sine'; o2.frequency.value = f*2;
+      o2.connect(g2); g2.connect(this.master);
+      g2.gain.setValueAtTime(.0001, t);
+      g2.gain.linearRampToValueAtTime(vol*.32, t + .01);
+      g2.gain.exponentialRampToValueAtTime(.0001, t + dur*.55);
+      o2.start(t); o2.stop(t + dur*.55 + .05);
+    }
+  },
+  seq(list){                     /* 音效：一组短音 [{f,at,dur,vol,type,glide}] */
+    if(!this.ac || !this.on) return;
+    const t0 = this.ac.currentTime + .01;
+    for(const n of list) this.note(n.f, t0 + (n.at||0), n.dur||.16,
+      n.vol||.16, n.type||'triangle', false, n.glide);
+  },
+  sfx(name){                     /* 事件音效入口：无上下文时静默计数，绝不抛错 */
+    this.calls++;
+    if(!this.ac || !this.on) return;
+    try{
+      switch(name){
+        case 'tap':    this.seq([{f:880,dur:.09,vol:.09}]); break;
+        case 'bubble': this.seq([{f:660,dur:.1,vol:.08},{f:880,at:.07,dur:.12,vol:.08}]); break;
+        case 'select': this.seq([{f:523,dur:.1,vol:.11},{f:784,at:.08,dur:.15,vol:.11}]); break;
+        case 'spin':   this.seq([{f:392,dur:.3,vol:.12,type:'sine'},{f:523,at:.1,dur:.3,vol:.11,type:'sine'},{f:659,at:.2,dur:.4,vol:.11,type:'sine'}]); break;
+        case 'seesaw': this.seq([{f:180,dur:.2,vol:.2,type:'sine'},{f:262,at:.1,dur:.26,vol:.11}]); break;
+        case 'swing':  this.seq([{f:500,dur:.45,vol:.09,type:'sine',glide:820}]); break;
+        case 'start':  this.seq([{f:523,dur:.13,vol:.13},{f:659,at:.09,dur:.13,vol:.13},{f:784,at:.18,dur:.2,vol:.14},{f:1047,at:.3,dur:.32,vol:.13}]); break;
+        case 'move':   this.seq([{f:740,dur:.07,vol:.06},{f:988,at:.05,dur:.09,vol:.05}]); break;
+        case 'warn':   this.seq([{f:622,dur:.13,vol:.1},{f:554,at:.13,dur:.17,vol:.1}]); break;
+        case 'dodge':  this.seq([{f:784,dur:.1,vol:.12},{f:1047,at:.07,dur:.15,vol:.12},{f:1319,at:.14,dur:.22,vol:.1}]); break;
+        case 'star':   this.seq([{f:1047,dur:.13,vol:.12},{f:1319,at:.09,dur:.24,vol:.11}]); break;
+        case 'fail':   this.seq([{f:330,dur:.2,vol:.15,type:'sine'},{f:262,at:.15,dur:.26,vol:.14,type:'sine'},{f:196,at:.32,dur:.45,vol:.13,type:'sine'}]); break;
+        case 'win':    this.seq([{f:523,dur:.12,vol:.12},{f:659,at:.1,dur:.12,vol:.12},{f:784,at:.2,dur:.12,vol:.12},{f:1047,at:.3,dur:.18,vol:.13},{f:1319,at:.44,dur:.38,vol:.12}]); break;
+        case 'q':      this.seq([{f:988,dur:.09,vol:.08},{f:1175,at:.06,dur:.13,vol:.07}]); break;
+        case 'right':  this.seq([{f:659,dur:.09,vol:.11},{f:880,at:.07,dur:.09,vol:.11},{f:1047,at:.14,dur:.2,vol:.12}]); break;
+        case 'wrong':  this.seq([{f:330,dur:.14,vol:.13},{f:208,at:.12,dur:.32,vol:.12,type:'sine',glide:130}]); break;
+        case 'pump':    this.seq([{f:520,dur:.08,vol:.07}]); break;
+        case 'pumpGood':this.seq([{f:660,dur:.07,vol:.09},{f:990,at:.05,dur:.12,vol:.09}]); break;
+        case 'throw':   this.seq([{f:400,dur:.3,vol:.12,type:'sine',glide:1100}]); break;
+        case 'land':    this.seq([{f:190,dur:.18,vol:.16,type:'sine'}]); break;
+        case 'score':   this.seq([{f:659,dur:.1,vol:.11},{f:880,at:.08,dur:.1,vol:.11},{f:1175,at:.16,dur:.22,vol:.12}]); break;
+        case 'balloon': this.seq([{f:1200,dur:.06,vol:.12},{f:800,at:.04,dur:.1,vol:.08}]); break;
+        case 'drop':    this.seq([{f:500,dur:.4,vol:.12,type:'sine',glide:120},{f:150,at:.3,dur:.25,vol:.16,type:'sine'}]); break;
+        case 'rescue':  this.seq([{f:523,dur:.1,vol:.11},{f:784,at:.08,dur:.1,vol:.11},{f:1047,at:.16,dur:.25,vol:.12}]); break;
+      }
+    }catch(e){}
+  },
+  toggle(){
+    this.on = !this.on;
+    try{
+      if(this.on) this.ensure();
+      if(this.master) this.master.gain.setTargetAtTime(this.on ? .9 : 0, this.ac.currentTime, .04);
+    }catch(e){}
+    syncSndBtns();
+  }
+};
+function syncSndBtns(){
+  for(const b of document.querySelectorAll('.sndBtn')){
+    b.classList.toggle('off', !Snd.on);
+    b.setAttribute('aria-pressed', String(Snd.on));
+  }
+}
+const sfx = n => Snd.sfx(n);
+addEventListener('pointerdown', ()=>Snd.ensure(), true);   /* 任意首次手势解锁声音 */
+addEventListener('keydown',    ()=>Snd.ensure(), true);
+
+const SPREAD_W = 1480, SPREAD_H = 900;
+
+/* ---------- 自适应 ---------- */
+function fitStage(){
+  const vw = innerWidth, vh = innerHeight;
+  const padX = vw < 760 ? 14 : 44, padY = vw < 760 ? 14 : 44;
+  const s = Math.min((vw - padX*2)/SPREAD_W, (vh - padY*2)/SPREAD_H);
+  stage.style.setProperty('--fit', s.toFixed(4));
+  $('rotateTip').style.opacity =
+    (vh > vw*1.1 && vw < 900 && s < .5) ? .8 : 0;
+}
+addEventListener('resize', fitStage);
+fitStage();
+requestAnimationFrame(()=>stage.classList.add('in'));
+
+/* ---------- 视差 ---------- */
+const layers = [...document.querySelectorAll('.plx')].map(el=>({
+  el, d:+el.dataset.depth||0
+}));
+let mx=0, my=0, tmx=0, tmy=0;
+addEventListener('pointermove', e=>{
+  tmx = (e.clientX/innerWidth - .5)*2;
+  tmy = (e.clientY/innerHeight - .5)*2;
+}, {passive:true});
+addEventListener('pointerleave', ()=>{ tmx=0; tmy=0; });
+function paintParallax(dt){
+  mx += (tmx-mx)*Math.min(1,dt*3.2);
+  my += (tmy-my)*Math.min(1,dt*3.2);
+  for(const L of layers){
+    L.el.style.translate = `${(-mx*L.d*0.4).toFixed(2)}px ${(-my*L.d*0.24).toFixed(2)}px`;
+  }
+}
+
+/* ---------- 旋转木马 ---------- */
+const N = 8, SPAN = Math.PI*2/N;
+const ORB = { ax:31, h:23.5, base:11.8, rise:2.2, sMin:.78, sMax:1, top:54 };
+const spin = { on:false, speed:0, ang:0, items:[] };
+
+(function buildHorses(){
+  for(let i=0;i<N;i++){
+    const mk = host => {
+      const g = document.createElement('div');
+      g.className = 'horse';
+      const pole = document.createElement('div');
+      pole.className = 'pole';
+      const cap = document.createElement('div');
+      cap.className = 'cap';
+      const img = document.createElement('img');
+      img.src = 'assets/horse.webp'; img.alt = '';
+      g.append(pole, cap, img);
+      host.appendChild(g);
+      return { g, pole, cap, img };
+    };
+    const b = mk(hBack), f = mk(hFront);
+    spin.items.push({ b, f });
+  }
+})();
+
+rideBtn.addEventListener('click', ()=>{
+  spin.on = !spin.on;
+  rideBtn.classList.toggle('on', spin.on);
+  rideBtn.setAttribute('aria-pressed', String(spin.on));
+  rideLbl.textContent = spin.on ? '让木马停下来' : '让木马转起来';
+  sfx(spin.on ? 'spin' : 'tap');
+});
+
+function updateCarousel(dt, t){
+  const H = carousel.clientHeight, W = carousel.clientWidth;
+  spin.speed += ((spin.on ? .72 : 0) - spin.speed) * Math.min(1, dt*2.0);
+  spin.ang += spin.speed * dt;
+
+  const jitter = spin.speed * 1.2;
+  carBody.style.transform = jitter > .004
+    ? `translateY(${(Math.sin(t*9.5)*jitter*.3).toFixed(2)}px)` : '';
+
+  for(let i=0;i<N;i++){
+    const it = spin.items[i];
+    const th = spin.ang + i*SPAN;
+    const d  = Math.cos(th);                       // 1 = 最近
+    const dep = (d+1)/2;                           // 0 最远 → 1 最近
+    const s  = ORB.sMin + (ORB.sMax-ORB.sMin)*dep;
+    const x  = Math.sin(th) * ORB.ax;              // 水平偏离中心 %
+    const bob = Math.sin(th*2 + i*1.7 + t*3.4) * 1.5 * (.30 + .70*spin.speed/.72);
+    const bot = ORB.base + (1-dep)*ORB.rise + bob*Math.max(0,.2);
+    const front = d >= 0;
+
+    const on  = front ? it.f : it.b;
+    const off = front ? it.b : it.f;
+    off.g.style.opacity = 0;
+
+    on.g.style.opacity = 1;
+    on.g.style.left   = (50 + x) + '%';
+    on.g.style.bottom = bot.toFixed(2) + '%';
+    on.g.style.height = (ORB.h*s).toFixed(2) + '%';
+
+    // 立柱：从柱帽一直伸到檐口
+    const len = Math.max(0, (ORB.top - bot)/100*H);
+    const pw  = Math.max(2, ORB.h*s/100*H*24/456);
+    on.pole.style.height = len.toFixed(1) + 'px';
+    on.pole.style.width  = pw.toFixed(1) + 'px';
+    on.pole.style.opacity = front ? 1 : .92;
+    on.cap.style.width  = (pw*2.3).toFixed(1) + 'px';
+    on.cap.style.height = (pw*3.0).toFixed(1) + 'px';
+
+    on.img.style.transform = `translateX(-50%) scaleX(${i%2 ? -1 : 1})`;
+    on.img.style.filter = front
+      ? (d > .97 ? 'none' : `brightness(${(1-(1-d)*.12).toFixed(3)})`)
+      : `brightness(${(.90+(1+d)*.055).toFixed(3)}) saturate(.97)`;
+  }
+}
+
+/* ---------- 跷跷板 ---------- */
+const MAXA = 8.6*Math.PI/180;
+const tee = { a:0, v:0, lagL:0, lagR:0 };
+function hitSeesaw(dir){ tee.v += dir*0.52; sfx('seesaw'); }
+$('seesawHitL').addEventListener('pointerdown', e=>{e.preventDefault(); hitSeesaw(-1);});
+$('seesawHitR').addEventListener('pointerdown', e=>{e.preventDefault(); hitSeesaw( 1);});
+
+function updateSeesaw(dt){
+  const k = 13.0, c = 2.0;
+  tee.v += (-k*tee.a - c*tee.v)*dt;
+  tee.a += tee.v*dt;
+  if(tee.a >  MAXA){ tee.a =  MAXA; tee.v *= -0.32; }
+  if(tee.a < -MAXA){ tee.a = -MAXA; tee.v *= -0.32; }
+
+  sBoard.style.transform = `rotate(${(tee.a*180/Math.PI).toFixed(3)}deg)`;
+
+  const f = Math.min(1, dt*10);
+  tee.lagL += (tee.a - tee.lagL)*f;
+  tee.lagR += (tee.a - tee.lagR)*f;
+  const wL = Math.max(-6, Math.min(6, (tee.lagL - tee.a)*115));
+  const wR = Math.max(-6, Math.min(6, (tee.lagR - tee.a)*115));
+  sBearL.style.transform = `rotate(${wL.toFixed(2)}deg)`;
+  sBearR.style.transform = `rotate(${wR.toFixed(2)}deg)`;
+}
+
+/* ---------- 秋千 ---------- */
+const SW_MAX = 17*Math.PI/180;
+const SW_L = 0.677;
+const seats = [
+  { el:$('seatA'), pv:[563/1400, 112/1134], a:0, v:0, drag:false, hist:[] },
+  { el:$('seatB'), pv:[863/1400, 112/1134], a:0, v:0, drag:false, hist:[] }
+];
+function angleAt(s, ev){
+  const r = s.el.parentElement.getBoundingClientRect();
+  const px = r.left + r.width * s.pv[0];
+  const py = r.top  + r.height* s.pv[1];
+  const dx = ev.clientX - px;
+  const dy = Math.max(10, ev.clientY - py);
+  return Math.atan2(dx, dy);
+}
+for(const s of seats){
+  s.el.addEventListener('pointerdown', ev=>{
+    ev.preventDefault();
+    try{ s.el.setPointerCapture(ev.pointerId); }catch(err){}
+    s.drag = true; s.v = 0; s.hist = [];
+    s.a = Math.max(-SW_MAX, Math.min(SW_MAX, angleAt(s, ev)));
+  });
+  s.el.addEventListener('pointermove', ev=>{
+    if(!s.drag) return;
+    s.a = Math.max(-SW_MAX, Math.min(SW_MAX, angleAt(s, ev)));
+    const now = performance.now();
+    s.hist.push({a:s.a, t:now});
+    while(s.hist.length > 1 && now - s.hist[0].t > 120) s.hist.shift();
+  });
+  const end = ()=>{
+    if(!s.drag) return;
+    s.drag = false;
+    if(s.hist.length >= 2){
+      const f = s.hist[0], l = s.hist[s.hist.length-1];
+      const dtm = (l.t - f.t)/1000;
+    if(dtm > .012) s.v = Math.max(-4.5, Math.min(4.5, (l.a - f.a)/dtm));
+    if(Math.abs(s.v) > .8) sfx('swing');
+  }
+    s.hist = [];
+  };
+  s.el.addEventListener('pointerup', end);
+  s.el.addEventListener('pointercancel', end);
+}
+function updateSwing(dt){
+  const G = 6.2, DAMP = 0.36;
+  for(const s of seats){
+    if(s.drag) continue;
+    s.v += (-(G/SW_L)*Math.sin(s.a) - DAMP*s.v)*dt;
+    s.a += s.v*dt;
+    if(Math.abs(s.a) > SW_MAX){ s.a = Math.sign(s.a)*SW_MAX; s.v *= -0.26; }
+    if(Math.abs(s.a) < .0012 && Math.abs(s.v) < .003){ s.a = 0; s.v = 0; }
+    s.el.style.transform = `rotate(${(s.a*180/Math.PI).toFixed(3)}deg)`;
+  }
+}
+
+/* ---------- 选中 + 对话 ---------- */
+const INSTANT = /shot|selftest/.test(location.hash);
+const DIALOG = {
+  bearA:   { tag:'小熊',     anchor:'bearA',    dy:14,
+             lines:['你来啦，我们等了你好久呢！'] },
+  bearB:   { tag:'小熊',     anchor:'bearB',    dy:14,
+             lines:['他们都想陪你玩呢！'] },
+  carousel:{ tag:'旋转木马', anchor:'carousel', dy:-35,
+             lines:['我跑得可快了，你也来试试吧！'], pick:'carousel', play:'carousel' },
+  seesaw:  { tag:'跷跷板',   anchor:'seesaw',   dy:12,
+             lines:['我翘起来了！','我又落下去了！','你好啊，你也要玩吗？'],
+             pick:'seesaw', play:'seesaw' },
+  swing:   { tag:'秋千',     anchor:'swing',    dx:-42, dy:16,
+             lines:['我想飞到天上去！'], pick:'swing', play:'swing' }
+};
+const HONEY_LINE = '哇塞，你已经收集满星星了吗？！奖励你一罐蜂蜜哦。';
+const bubble = $('bubble'), bTag = $('bubbleTag'), bTxt = $('bubbleText');
+const bNext = $('bubbleNext'), bPlay = $('bubblePlay');
+let cur = { key:null, i:0, timer:null }, pickTimer = null;
+
+function clearPicks(){
+  for(const id of ['carousel','seesaw','swing']) $(id).classList.remove('picked');
+}
+function resetBubble(){
+  bNext.classList.remove('on'); bPlay.classList.remove('show');
+  clearInterval(cur.timer); cur.timer = null;
+}
+function hideBubble(){ resetBubble(); bubble.classList.remove('show'); }
+function closeAll(){ hideBubble(); clearPicks(); cur.key = null; cur.i = 0; }
+
+function placeBubble(d){
+  const sr = stage.getBoundingClientRect();
+  const sc = sr.width / SPREAD_W;
+  const ar = $(d.anchor).getBoundingClientRect();
+  const cx  = (ar.left + ar.width/2 - sr.left)/sc + (d.dx || 0);
+  const top = (ar.top - sr.top)/sc;
+  bubble.style.width = '';
+  const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+  const half = bw/2;
+  const left = Math.max(half + 14, Math.min(SPREAD_W - half - 14, cx));
+  let bottom = (SPREAD_H - top) + (d.dy === undefined ? 14 : d.dy);
+  bottom = Math.max(12, Math.min(SPREAD_H - bh - 12, bottom));
+  bubble.style.left = left.toFixed(1) + 'px';
+  bubble.style.bottom = bottom.toFixed(1) + 'px';
+  bubble.style.width = bw + 'px';   // 固定宽度：逐字打出时不抖动
+}
+function render(){
+  const d = DIALOG[cur.key];
+  const honey = bankFull() && (cur.key==='bearA' || cur.key==='bearB');  // 集满 15 星 → 蜂蜜奖励对话
+  const txt = honey ? HONEY_LINE : d.lines[cur.i];
+  const last = honey ? true : cur.i === d.lines.length - 1;
+  const canPlay = !honey && !!d.play && last;
+  const canNext = honey ? false : !last;
+
+  resetBubble();
+  bubble.classList.toggle('hasGift', honey);
+  bTag.textContent = honey ? '小熊 · 惊喜' : d.tag;
+  bTxt.textContent = txt;           // 先写全文用于测量气泡尺寸
+  placeBubble(d);
+  bubble.classList.add('show');
+
+  if(INSTANT){
+    bPlay.classList.toggle('show', canPlay);
+    bNext.classList.toggle('on', canNext);
+    return;
+  }
+  bTxt.textContent = '';
+  let n = 0;
+  cur.timer = setInterval(()=>{
+    n++;
+    bTxt.textContent = txt.slice(0, n);
+    if(n >= txt.length){
+      clearInterval(cur.timer); cur.timer = null;
+      if(canNext) bNext.classList.add('on');
+      if(canPlay) bPlay.classList.add('show');
+    }
+  }, 34);
+}
+function bounceBear(key){
+  $(DIALOG[key].anchor).animate(
+    [{transform:'translateX(-50%) translateY(0) scale(1)'},
+     {transform:'translateX(-50%) translateY(-10px) scale(1.035)'},
+     {transform:'translateX(-50%) translateY(0) scale(1)'}],
+    {duration:460, easing:'cubic-bezier(.3,1.4,.5,1)'});
+}
+function open(key){
+  clearTimeout(pickTimer);
+  sfx(bankFull() && (key==='bearA'||key==='bearB') ? 'star' : (cur.key === key ? 'bubble' : 'select'));
+  if(cur.key !== key){
+    clearPicks();
+    cur.key = key; cur.i = 0;
+    if(DIALOG[key].pick) $(DIALOG[key].pick).classList.add('picked');
+  } else if(cur.i < DIALOG[key].lines.length - 1){
+    cur.i++;
+  }
+  if(key === 'bearA' || key === 'bearB') bounceBear(key);
+  render();
+}
+function startGame(kind){
+  hideBubble();
+  cur.key = null; cur.i = 0;
+  if(kind === 'carousel'){ openGame(); return; }   // 进入骑乘游戏
+  if(kind === 'seesaw'){ openSeesaw(); return; }   // 进入配平游戏
+  if(kind === 'swing'){ openSwing(); return; }     // 进入荡高投掷游戏
+  sfx('start');
+  clearTimeout(pickTimer);
+  pickTimer = setTimeout(()=>{
+    if(!bubble.classList.contains('show')) clearPicks();
+  }, 1600);
+}
+
+$('bearA').addEventListener('pointerdown', ()=>open('bearA'));
+$('bearB').addEventListener('pointerdown', ()=>open('bearB'));
+$('carousel').addEventListener('pointerdown', ()=>open('carousel'));
+$('seesaw').addEventListener('pointerdown', ()=>open('seesaw'));
+
+// 秋千可拖动：只在“没有拖动”时当作点按选中
+let swDown = null, swMoved = false;
+$('swing').addEventListener('pointerdown', e=>{ swDown = [e.clientX, e.clientY]; swMoved = false; });
+$('swing').addEventListener('pointermove', e=>{
+  if(swDown && Math.hypot(e.clientX - swDown[0], e.clientY - swDown[1]) > 8) swMoved = true;
+});
+$('swing').addEventListener('pointerup', ()=>{
+  swDown = null;
+  if(swMoved){ swMoved = false; return; }
+  open('swing');
+});
+
+// 点击气泡本身推进对话
+bubble.addEventListener('click', e=>{
+  if(e.target.closest('.play')) return;
+  if(cur.key) open(cur.key);
+});
+bPlay.addEventListener('click', e=>{
+  e.stopPropagation();
+  const kind = cur.key && DIALOG[cur.key].play;
+  if(kind) startGame(kind);
+});
+
+// 点空白处：收起气泡并取消选中
+document.addEventListener('pointerdown', e=>{
+  if(e.target.closest('.bear, .bubble, .pickable, #rideBtn, #game, #ss, #sw, #topHud')) return;
+  closeAll();
+}, true);
+
+/* ---------- 主循环 ---------- */
+let last = performance.now(), frameN = 0, lastDt = 0, clock = 0;
+function step(dt, t){
+  if(game.active){ if(!game.paused) updateGame(dt); return; }
+  if(ss.active){ if(!ss.paused) updateSS(dt); return; }
+  if(sw.active){ if(!sw.paused) updateSW(dt); return; }
+  paintParallax(dt);
+  updateCarousel(dt, t);
+  updateSeesaw(dt);
+  updateSwing(dt);
+
+  balloons.style.transform =
+    `translateX(-50%) translate(${(Math.sin(t*.85)*4).toFixed(2)}px,${(Math.cos(t*1.2)*6).toFixed(2)}px) rotate(${(Math.sin(t*.62)*1.5).toFixed(2)}deg)`;
+}
+function loop(now){
+  const dt = Math.max(0, Math.min(.05, (now-last)/1000));
+  last = now; frameN++; lastDt = dt; clock += dt;
+  step(dt, clock);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ---------- 旋转木马 · 骑乘游戏 ---------- */
+const starSvg = lit => `<svg viewBox="0 0 100 100"${lit?' class="lit"':''}>
+  <path d="M50 6 L62 38 L96 40 L69 60 L79 94 L50 74 L21 94 L31 60 L4 40 L38 38 Z"
+    fill="${lit?'#f5b942':'#e6d9c0'}" stroke="#fffaf0" stroke-width="6" stroke-linejoin="round"/>
+  ${lit?'<path d="M50 18 L59 41 L84 43 L64 59 L71 84 L50 69 L29 84 L36 59 L16 43 L41 41 Z" fill="#ffe49a" opacity=".8"/>':''}
+</svg>`;
+
+/* ---------- 集星账本：三个游戏各取历史最高，合计最高 15 ---------- */
+const BANK_KEY   = 'popupbook_stars_v1';
+const BANK_DEMO  = /(selftest|shot|game|ss|sw|bank)/.test(location.hash); // 演示/自检态只用内存、不写盘
+const BANK_NAMES = { carousel:'旋转木马', seesaw:'跷跷板', swing:'秋千' };
+const bank = { carousel:0, seesaw:0, swing:0 };
+try{
+  if(!BANK_DEMO){
+    const raw = localStorage.getItem(BANK_KEY);
+    if(raw){ const o = JSON.parse(raw);
+      for(const k in bank) if(Number.isFinite(o[k])) bank[k] = Math.max(0, Math.min(5, o[k]|0)); }
+  }
+}catch(e){}
+function bankTotal(){ return bank.carousel + bank.seesaw + bank.swing; }
+function bankFull(){ return bankTotal() >= 15; }
+function bankSet(game, n){
+  n = Math.max(0, Math.min(5, Math.round(n)));
+  if(n <= bank[game]) return false;             // 每个游戏只取历史最高，低分不回退
+  const wasFull = bankFull();
+  bank[game] = n;
+  if(!BANK_DEMO){ try{ localStorage.setItem(BANK_KEY, JSON.stringify(bank)); }catch(e){} }
+  renderBank();
+  if(!wasFull && bankFull()) sfx('win');        // 首次集满 15 颗的庆祝音
+  return true;
+}
+function bankReset(){ for(const k in bank) bank[k] = 0; renderBank(); }   // 仅自检用
+function bankStar(lit){
+  return `<svg viewBox="0 0 100 100"><path d="M50 6 L62 38 L96 40 L69 60 L79 94 L50 74 L21 94 L31 60 L4 40 L38 38 Z" fill="${lit?'#f5b942':'#e6d9c0'}" stroke="#fffaf0" stroke-width="6" stroke-linejoin="round"/></svg>`;
+}
+function renderBank(){
+  const t = bankTotal(), full = bankFull();
+  $('sbCount').textContent = t;
+  $('sbTitle').textContent = full ? '全部集齐！' : '收集星星';
+  $('sbTip').textContent   = full ? '去找小熊领蜂蜜吧！' : '点一下看每个游戏 ↗';
+  $('sbBar').innerHTML = Array.from({length:15},(_,i)=>`<u class="${i<t?'on':''}"></u>`).join('');
+  $('sbDetail').innerHTML = ['carousel','seesaw','swing'].map(k=>
+    `<div class="sbRow"><span>${BANK_NAMES[k]}</span>`+
+    `<em>${Array.from({length:5},(_,i)=>bankStar(i<bank[k])).join('')}</em>`+
+    `<b>${bank[k]}/5</b></div>`).join('');
+  $('starBank').classList.toggle('full', full);
+}
+$('starBank').addEventListener('click', ()=> $('starBank').classList.toggle('open'));
+$('starBank').addEventListener('keydown', e=>{
+  if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('starBank').classList.toggle('open'); }
+});
+renderBank();
+
+const ART = {
+  donut: `<svg viewBox="0 0 200 200">
+    <path fill-rule="evenodd" d="M100 10 a90 90 0 1 0 0 180 a90 90 0 1 0 0 -180 Z M100 58 a42 42 0 1 1 0 84 a42 42 0 1 1 0 -84 Z"
+      fill="#e2a869" stroke="#fffaf0" stroke-width="7" stroke-linejoin="round"/>
+    <path fill-rule="evenodd" d="M100 22 a78 78 0 1 0 0 156 a78 78 0 1 0 0 -156 Z M100 54 a46 46 0 1 1 0 92 a46 46 0 1 1 0 -92 Z"
+      fill="#f2a6b6"/>
+    <circle cx="100" cy="100" r="43" fill="none" stroke="#cf8f55" stroke-width="4" opacity=".8"/>
+    <g stroke-width="7" stroke-linecap="round">
+      <line x1="58" y1="46" x2="69" y2="57" stroke="#79c2a6"/>
+      <line x1="112" y1="34" x2="122" y2="47" stroke="#f6d873"/>
+      <line x1="150" y1="62" x2="140" y2="72" stroke="#8fb2e0"/>
+      <line x1="164" y1="112" x2="151" y2="118" stroke="#79c2a6"/>
+      <line x1="140" y1="152" x2="130" y2="142" stroke="#f6d873"/>
+      <line x1="78" y1="160" x2="88" y2="150" stroke="#8fb2e0"/>
+      <line x1="40" y1="118" x2="53" y2="112" stroke="#f6d873"/>
+      <line x1="62" y1="78" x2="72" y2="86" stroke="#ee8f8f"/>
+    </g>
+  </svg>`,
+  cake: `<svg viewBox="0 0 200 200">
+    <g stroke="#fffaf0" stroke-width="6" stroke-linecap="round" opacity=".85">
+      <line x1="48" y1="4" x2="48" y2="24"/><line x1="100" y1="0" x2="100" y2="20"/>
+      <line x1="152" y1="4" x2="152" y2="24"/>
+    </g>
+    <rect x="30" y="52" width="140" height="112" rx="14" fill="#efc78c" stroke="#fffaf0" stroke-width="8"/>
+    <rect x="34" y="92" width="132" height="15" fill="#fff4e0"/>
+    <rect x="34" y="128" width="132" height="13" fill="#fff4e0"/>
+    <path d="M26 56 Q40 34 60 48 Q80 30 100 46 Q120 30 140 48 Q162 34 174 56 Z"
+      fill="#fff7e8" stroke="#fffaf0" stroke-width="7" stroke-linejoin="round"/>
+    <circle cx="100" cy="38" r="15" fill="#e2736b" stroke="#fffaf0" stroke-width="5"/>
+    <path d="M91 28 Q100 20 109 28" stroke="#7fb269" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="44" cy="176" r="5" fill="#e2a869"/><circle cx="160" cy="180" r="4" fill="#e2a869"/>
+  </svg>`,
+  bread: `<svg viewBox="0 0 200 200">
+    <path d="M12 186 q7 -16 14 0 M172 186 q7 -16 14 0" stroke="#8fb56e" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <g stroke="#fffaf0" stroke-width="8" stroke-linejoin="round">
+      <path d="M26 184 L26 118 Q26 96 50 96 L78 96 Q102 96 102 118 L102 184 Z" fill="#e8b878"/>
+      <path d="M98 184 L98 118 Q98 96 122 96 L150 96 Q174 96 174 118 L174 184 Z" fill="#e8b878"/>
+      <path d="M62 100 L62 52 Q62 30 88 30 L112 30 Q138 30 138 52 L138 100 Z" fill="#edc68a"/>
+    </g>
+    <path d="M36 178 L36 120 Q36 106 50 106 L78 106 Q92 106 92 120 L92 178 Z" fill="#f8e5c2" opacity=".55"/>
+    <path d="M108 178 L108 120 Q108 106 122 106 L150 106 Q164 106 164 120 L164 178 Z" fill="#f8e5c2" opacity=".55"/>
+    <path d="M72 96 L72 54 Q72 40 88 40 L112 40 Q128 40 128 54 L128 96 Z" fill="#f8e5c2" opacity=".55"/>
+  </svg>`
+};
+
+const HORSE_SVG = `<svg viewBox="0 0 440 220">
+  <path d="M18 214 Q110 152 176 122 M422 214 Q330 152 264 122"
+    stroke="#bb8d51" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M148 220 Q156 132 190 94 Q220 70 250 94 Q284 132 292 220 Z"
+    fill="#f3e1c0" stroke="#fffaf0" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M170 100 Q168 46 205 34 Q220 28 235 34 Q272 46 270 100 Q220 78 170 100 Z"
+    fill="#e7b474" stroke="#fffaf0" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M190 42 Q176 14 192 12 Q204 18 204 42 Z" fill="#f3e1c0" stroke="#fffaf0" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M250 42 Q264 14 248 12 Q236 18 236 42 Z" fill="#f3e1c0" stroke="#fffaf0" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M178 66 Q220 44 262 66 Q252 88 220 82 Q188 88 178 66 Z" fill="#d9a25c"/>
+  <path d="M174 120 Q220 140 266 120" stroke="#c98f45" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <circle cx="220" cy="134" r="11" fill="#f5c25e" stroke="#fffaf0" stroke-width="4"/>
+</svg>`;
+
+const SAFE  = { donut:[0,2], cake:[0], bread:[2] };      // 安全档：0下 1中 2上
+const BLOCK = { donut:[1],   cake:[1,2], bread:[0,1] };  // 被堵住的档（= 哪几格摆了点心）
+const GTYPE = ['donut','cake','bread'];
+const COLNAME = ['左','中','右'];
+const LANENAME = ['下','中','上'];                       // lane 0/1/2
+/* 每一层固定摆一种独立小点心：上层=蛋糕、中层=甜甜圈、下层=面包。
+   障碍占哪几层，就在那几格各摆一个对应的小剪纸——不再把两层叠成一整块
+   「蛋糕山 / 面包塔」；上中 / 中下组合里，中间那格永远用甜甜圈来填。
+   于是「格子里有点心 = 这层被挡，空格 = 能走」，一眼可读，视觉与碰撞天然一致。 */
+const LANE_TYPE = { 2:'cake', 1:'donut', 0:'bread' };
+const PIECENAME = { donut:'甜甜圈', cake:'蛋糕', bread:'面包' };
+const layerDesc = lanes => [2,1,0].filter(l=>lanes.includes(l))
+                                 .map(l=>LANENAME[l]).join('+') + '层';
+const pieceDesc = lanes => [2,1,0].filter(l=>lanes.includes(l))
+                                 .map(l=>PIECENAME[LANE_TYPE[l]]).join('＋');
+/* 网格化的固定坐标：三列 X、三层 Y（% of 场景），障碍锁死在格点，绝不乱漂 */
+const COLX  = [33, 50, 67];
+const LANEY = { 2:40, 1:53, 0:66 };
+const COLW = 17;                                       // 镜头跟随的列间距（%）
+
+const G = {
+  el:$('game'), ride:$('gRide'), cam:$('gCam'), world:$('gWorld'), horse:$('gHorse'),
+  shadow:$('gShadow'), meter:$('gMeter'), hint:$('gHint'), me:$('gMe'),
+  band:$('gLaneBand'),
+  warn:$('gWarn'), cue:$('gCue'), ring:$('gRing'), pop:$('gPop'),
+  cueIco:$('gCue').querySelector('.cueIco'), cueTxt:$('gCue').querySelector('.cueTxt'),
+  dodgedEl:$('gDodged'),
+  stars:$('gStars'), time:$('gTime'), grid:$('gGrid'),
+  cells:[...document.querySelectorAll('#gGrid b')],
+  axCols:[...document.querySelectorAll('#gGrid .gAx.col')],
+  axRows:[...document.querySelectorAll('#gGrid .gAx.row')],
+  panel:$('gPanel'), card:$('gCard'), flash:$('gFlash'),
+  lanes:[...document.querySelectorAll('#gRails .gLane')],
+  padBtns:[...document.querySelectorAll('#gTouch button')]
+};
+const game = {
+  active:false, state:'ready', paused:false, t:0, dur:300, stars:0, fast:false, god:false,
+  col:1, lane:1, cx:1, ly:1, obs:[], next:0, swing:0, dodged:0, bump:0
+};
+
+G.horse.innerHTML = HORSE_SVG;
+G.stars.innerHTML = Array.from({length:5},()=>starSvg(false)).join('');
+
+function fmtTime(s){
+  const m = Math.floor(s/60), q = Math.floor(s%60);
+  return String(m).padStart(2,'0')+':'+String(q).padStart(2,'0');
+}
+function updateHud(){ G.time.textContent = fmtTime(Math.min(game.t, game.dur)) + ' / 05:00'; }
+function setStars(n){
+  if(n <= game.stars) return;
+  const svgs = G.stars.children;
+  for(let i=game.stars;i<n;i++){ svgs[i].outerHTML = starSvg(true); sfx('star'); }
+  game.stars = n;
+  bankSet('carousel', n);              // 上报集星账本（取最高）
+}
+function dropObs(o){ for(const p of o.pieces) p.el.remove(); if(o.tag) o.tag.remove(); }
+function updateGrid(){
+  const cells = G.cells;
+  for(let i=0;i<9;i++) cells[i].className = '';
+  for(let ln=0;ln<3;ln++){
+    cells[(2-ln)*3 + game.col].classList.add('mycol');
+    if(ln === game.lane) for(let c=0;c<3;c++) cells[(2-ln)*3 + c].classList.add('mylane');
+  }
+  for(const o of game.obs){
+    if(o.z < .30 || o.z > 1.02) continue;
+    for(const l of BLOCK[o.type]) cells[(2-l)*3 + o.col].classList.add('danger');
+  }
+  cells[(2-game.lane)*3 + game.col].classList.add('me');
+}
+function setPosUi(){
+  G.lanes.forEach((el,i)=>el.classList.toggle('on', i === game.col));
+  [...G.meter.children].forEach((el,i)=>el.classList.toggle('on', i === (2-game.lane)));
+  G.axCols.forEach((el,i)=>el.classList.toggle('on', i === game.col));
+  G.axRows.forEach((el,i)=>el.classList.toggle('on', i === (2-game.lane)));
+  G.me.innerHTML = `我 · <b>${COLNAME[game.col]}列 ${LANENAME[game.lane]}层</b>`;
+}
+
+/* 逼近评估：实时告诉玩家「安不安全 / 该按哪个键」，并驱动边缘预警 */
+function assess(){
+  const near = game.obs.filter(o => o.z > .34 && o.z < 1.02);
+  const mine = near.filter(o => o.col === game.col);
+  let allowed = [0,1,2];
+  for(const o of mine) allowed = allowed.filter(l => SAFE[o.type].includes(l));
+  const lead = mine.slice().sort((a,b)=>b.z-a.z)[0];
+
+  let mode = 'idle', ico = '', txt = '', dir = 'none', intensity = 0;
+  if(lead){
+    intensity = Math.max(0, Math.min(1, (lead.z - .34)/.66));
+    if(allowed.includes(game.lane)){
+      mode = 'safe'; ico = '✓'; txt = '稳住！保持这一层';
+    } else if(allowed.length){
+      const target = allowed.reduce((a,b)=>Math.abs(b-game.lane)<Math.abs(a-game.lane)?b:a);
+      const up = target > game.lane;
+      mode = 'danger'; dir = up ? 'up' : 'down';
+      ico = up ? '↑' : '↓'; txt = (up ? '升到' : '降到') + LANENAME[target] + '层！';
+    } else {                                   /* 当前列无解，找一条空跑道 */
+      const busy = new Set(near.map(o=>o.col));
+      const free = [1,0,2].find(c => !busy.has(c) && c !== game.col);
+      if(free !== undefined){
+        dir = free < game.col ? 'left' : 'right';
+        ico = dir === 'left' ? '←' : '→'; txt = '换条跑道！'; mode = 'danger';
+      }
+    }
+    if(!allowed.includes(game.lane)) for(const o of mine) o.wasDanger = true;
+  }
+
+  G.warn.style.opacity = (mode === 'danger' ? (.2 + intensity*.7) : 0).toFixed(2);
+  G.warn.classList.toggle('pulse', mode === 'danger' && intensity > .42);
+  if(mode === 'idle') G.cue.className = '';
+  else { G.cue.className = 'on ' + mode; G.cueIco.textContent = ico; G.cueTxt.textContent = txt; }
+  G.padBtns.forEach(b => b.classList.toggle('cue', b.dataset.dir === dir));
+  const dm = mode === 'danger';
+  if(dm && !game.wasWarn){ sfx('warn'); game.wasWarn = true; }   /* 进入危险只响一次，不每帧睛 */
+  if(!dm) game.wasWarn = false;
+}
+function clearDangerUi(){
+  G.warn.style.opacity = '0'; G.warn.classList.remove('pulse');
+  G.cue.className = ''; G.padBtns.forEach(b => b.classList.remove('cue'));
+}
+/* 成功躲过一个障碍：计数 + 飘字 + 涟漪 + 轻晃 + 触感 */
+function showDodge(clutch){
+  sfx('dodge');
+  game.dodged++;
+  G.dodgedEl.innerHTML = '已躲开 <b>' + game.dodged + '</b>';
+  const s = document.createElement('span');
+  s.textContent = clutch ? '好险！+1' : ['漂亮！+1','稳稳的 +1','躲开啦 +1'][Math.floor(Math.random()*3)];
+  if(clutch) s.className = 'clutch';
+  s.style.left = (50 + (Math.random()*18-9)).toFixed(0) + '%';
+  G.pop.appendChild(s);
+  while(G.pop.children.length > 3) G.pop.firstChild.remove();
+  setTimeout(()=>s.remove(), 950);
+  G.ring.classList.remove('go'); void G.ring.offsetWidth; G.ring.classList.add('go');
+  game.bump = 1;
+  try{ if(navigator.vibrate) navigator.vibrate(clutch ? [16,18,16] : 12); }catch(e){}
+}
+function posObs(o){
+  const z = Math.max(0, o.z);
+  const e = Math.min(1, z);                       // 逼近进度，仅用于轻微缩放/淡入
+  const s = .62 + e*.4;                           // 0.62→1.02，绝不放大成一整块
+  const cx = COLX[o.col];                         // 列固定
+  let op = 1;
+  if(z < .06) op = z/.06;                         // 远处淡入
+  else if(z > 1.02) op = Math.max(0, (1.16-z)/.14);  // 掠过淡出
+  /* 一片 = 一个被挡层格里的独立小点心：等大、清晰，互不叠成一整块 */
+  for(const p of o.pieces){
+    const cy = LANEY[p.lane] - (1-e)*3;
+    p.el.style.left = cx.toFixed(2)+'%';
+    p.el.style.top  = cy.toFixed(2)+'%';
+    p.el.style.transform = `translate(-50%,-50%) scale(${s.toFixed(3)})`;
+    p.el.style.zIndex = 5 + Math.round(z*100);
+    p.el.style.opacity = op.toFixed(2);
+  }
+  if(o.tag){                    /* 坐标牌挂在最上层片的上方，写明「占哪几层」 */
+    const topY = LANEY[Math.max(...o.lanes)] - (1-e)*3;
+    o.tag.style.left = cx.toFixed(2)+'%';
+    o.tag.style.top  = (topY - 9).toFixed(2)+'%';
+    o.tag.style.zIndex = 120;
+    o.tag.style.opacity = (z > .12 && z < 1.04)
+      ? Math.min(1, (z-.12)/.1).toFixed(2) : '0';
+  }
+}
+function makeObs(col, type){
+  const lanes = BLOCK[type].slice().sort((a,b)=>a-b);   // 被挡的层（升序：下→上）
+  /* 一片 = 一格：按该层固定的点心摆一个独立小剪纸；中间层自然就是甜甜圈，
+     上层蛋糕、下层面包各自只占自己那一格，绝不叠成一整块蛋糕山/面包塔 */
+  const pieces = lanes.map((lane)=>{
+    const pt = LANE_TYPE[lane];
+    const el = document.createElement('div');
+    el.className = 'gObs ' + pt + (lanes.length > 1 ? ' stack' : '');
+    el.innerHTML = `<div class="art">${ART[pt]}</div>`;   // 纯剪纸，无分层背景
+    G.world.appendChild(el);
+    return { el, lane, pt };
+  });
+  const tag = document.createElement('div');
+  tag.className = 'gObsTag';
+  tag.innerHTML = `<b>${COLNAME[col]}列 · ${layerDesc(lanes)}</b>` +
+    `<span>${pieceDesc(lanes)} · 挡${lanes.length}层</span>`;
+  G.world.appendChild(tag);
+  return { col, type, lanes, z:0, pieces, tag, passed:false, wasDanger:false };
+}
+function spawnWave(){
+  const p = Math.min(1, game.t/game.dur);
+  const n = Math.random() < (.64 - .10*p) ? 1 : 2;   // 每波随机占 1~2 列
+  const cols = [0,1,2].sort(()=>Math.random()-.5).slice(0,n);
+  for(const c of cols) game.obs.push(makeObs(c, GTYPE[Math.floor(Math.random()*3)]));
+}
+function stepRun(h){
+  game.t += h;
+  setStars(Math.min(5, Math.floor(game.t/60)));
+  if(game.t >= game.dur){ game.t = game.dur; win(); return; }
+  const p = Math.min(1, game.t/game.dur);
+  const speed = .30 + .24*p;
+  game.next -= h;
+  if(game.next <= 0){
+    spawnWave();
+    game.next = (2.7 - 1.5*p)*(.85 + Math.random()*.3);
+  }
+  for(let i=game.obs.length-1;i>=0;i--){
+    const o = game.obs[i];
+    const pz = o.z;
+    o.z += speed*h;
+    if(o.z > 1.15){ dropObs(o); game.obs.splice(i,1); continue; }
+    if(!game.god && o.z > .92 && o.z < 1.02 && o.col === game.col && !SAFE[o.type].includes(game.lane)){
+      fail(); return;
+    }
+    if(!o.passed && pz < 1.02 && o.z >= 1.02){   /* 安全掠过：一次成功躲避 */
+      o.passed = true;
+      showDodge(!!o.wasDanger);
+    }
+  }
+}
+function updateGame(dt){
+  game.swing += dt;
+  const bob  = Math.sin(game.swing*Math.PI*1.10);
+  const sway = Math.sin(game.swing*Math.PI*0.56);
+  game.bump = Math.max(0, game.bump - dt*3.2);
+  const shake = game.bump*Math.sin(game.bump*27)*3.4;
+  G.ride.style.transform =
+    `translateY(${(bob*7 + shake).toFixed(2)}px) rotate(${(sway*.9 + shake*.24).toFixed(2)}deg)`;
+  /* 位置平滑趋近目标：位移大、带倾斜，让换列/升降一眼可见 */
+  const k = Math.min(1, dt*9);
+  game.cx += (game.col - game.cx)*k;
+  game.ly += (game.lane - game.ly)*k;
+  /* 镜头跟随：整个场景反向平移，让「我所在列」永远落在画面正中；马头固定居中 */
+  G.cam.style.transform = `translateX(${((1-game.cx)*COLW).toFixed(2)}%)`;
+  const lift = game.ly - 1;                       /* 上层 >0：马头上移、投影变小淡 */
+  const tilt = (game.col - game.cx)*6;            /* 换列时轻微侧倾，位移感交给镜头 */
+  const vy = innerHeight*0.085;
+  G.horse.style.left = '50%';
+  G.me.style.left = '50%';
+  G.shadow.style.left = '50%';
+  G.horse.style.transform =
+    `translateX(-50%) translateY(${(-bob*10 - lift*vy).toFixed(1)}px) ` +
+    `rotate(${(tilt + sway*1.6).toFixed(2)}deg) scale(${(1 - lift*.05).toFixed(3)})`;
+  G.shadow.style.opacity = (.5 - lift*.16).toFixed(2);
+  G.shadow.style.transform = `translateX(-50%) scale(${(1 - lift*.3).toFixed(3)})`;
+  /* 当前层的「选中」奶白光带：与左中右跑道白阴影对称，随升降平滑上下 */
+  G.band.style.top = (66 - 13*game.ly).toFixed(2) + '%';
+  if(game.state !== 'playing') return;
+
+  let remain = dt*(game.fast ? 20 : 1), guard = 0;
+  while(remain > 0 && game.state === 'playing' && guard++ < 400){
+    const h = Math.min(remain, 1/60);
+    stepRun(h); remain -= h;
+  }
+  for(const o of game.obs) posObs(o);
+  if(game.state === 'playing') assess(); else clearDangerUi();
+  updateGrid(); updateHud();
+}
+function gMove(dc, dl){
+  if(game.state !== 'playing' || game.paused) return;
+  const oc = game.col, ol = game.lane;
+  game.col  = Math.max(0, Math.min(2, game.col + dc));
+  game.lane = Math.max(0, Math.min(2, game.lane + dl));
+  if(game.col === oc && game.lane === ol) return;
+  sfx('move');
+  setPosUi(); updateGrid();
+  G.hint.textContent = game.col !== oc ? (game.col < oc ? '←' : '→')
+                                       : (game.lane > ol ? '↑' : '↓');
+  G.hint.classList.remove('pop'); void G.hint.offsetWidth; G.hint.classList.add('pop');
+  assess();                              /* 按键后立刻刷新安危提示，跟手 */
+}
+function bigStars(n){
+  return `<div class="gStarsBig">${Array.from({length:5},(_,i)=>starSvg(i<n)).join('')}</div>`;
+}
+function gButtons(label){
+  return `<div class="gBtns"><button class="gBtn" data-act="go">${label}</button>
+    <button class="gBtn ghost" data-act="back">回到书页</button></div>`;
+}
+function showPanel(kind){
+  game.state = kind;
+  G.panel.classList.add('on');
+  if(kind === 'ready'){
+    G.card.innerHTML = `
+      <h2>骑上木马，出发啦！</h2>
+      <p>躲开迎面飞来的点心，坚持满 5 分钟集齐 5 颗星。<br>每坚持 1 分钟点亮 1 颗 ✦</p>
+      <div class="gLegend">
+        <div><div class="pics">${ART.donut}</div><b>甜甜圈 · 中层</b><span>只占中间 1 层<br>↑ 或 ↓ 都能过</span></div>
+        <div><div class="pics">${ART.cake}${ART.donut}</div><b>蛋糕＋甜甜圈</b><span>占 上+中 2 层<br>只能 ↓ 钻到下层</span></div>
+        <div><div class="pics">${ART.donut}${ART.bread}</div><b>甜甜圈＋面包</b><span>占 中+下 2 层<br>只能 ↑ 升到上层</span></div>
+      </div>
+      <p>← → 换列　·　↑ ↓ 升降<br><small>手机可上下左右滑动，或点屏幕下方按钮</small></p>
+      ${gButtons('出发！')}`;
+  } else if(kind === 'over'){
+    G.card.innerHTML = `
+      <h2>哎呀，撞到啦！</h2>
+      <p>坚持了 ${fmtTime(game.t)}，一路躲开 ${game.dodged} 个点心，获得</p>
+      ${bigStars(game.stars)}
+      <p>再试一次，这次一定转得更久～</p>
+      ${gButtons('再来一次')}`;
+  } else {
+    G.card.innerHTML = `
+      <h2>五颗星，全收集！</h2>
+      <p>你骑着木马稳稳转满了 5 分钟，一路躲开 ${game.dodged} 个点心 ✦</p>
+      ${bigStars(5)}
+      <p>要不要再骑一圈？</p>
+      ${gButtons('再骑一圈')}`;
+  }
+  G.card.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+    if(b.dataset.act === 'back') closeGame(); else startRun();
+  }));
+}
+function startRun(){
+  game.paused = false; syncPauseBtn();
+  G.panel.classList.remove('on');
+  game.state = 'playing';
+  game.t = 0; game.stars = 0; game.col = 1; game.lane = 1; game.cx = 1; game.ly = 1;
+  game.swing = 0; game.next = 1.2; game.dodged = 0; game.bump = 0;
+  for(const o of game.obs) dropObs(o);
+  game.obs = [];
+  G.stars.innerHTML = Array.from({length:5},()=>starSvg(false)).join('');
+  G.dodgedEl.innerHTML = '已躲开 <b>0</b>';
+  G.pop.innerHTML = ''; G.hint.classList.remove('pop'); G.ring.classList.remove('go');
+  clearDangerUi(); setPosUi(); updateGrid(); updateHud();
+  game.wasWarn = false;
+  Snd.mood = 'play'; sfx('start');
+}
+function fail(){
+  sfx('fail');
+  game.state = 'over';
+  clearDangerUi();
+  G.flash.classList.remove('hit'); void G.flash.offsetWidth; G.flash.classList.add('hit');
+  updateHud(); showPanel('over');
+}
+function win(){ sfx('win'); setStars(5); updateHud(); showPanel('win'); }
+function openGame(){
+  sfx('tap');
+  game.active = true;
+  hideBubble(); clearPicks();
+  G.el.classList.add('on');
+  G.el.setAttribute('aria-hidden','false');
+  clearDangerUi(); setPosUi(); showPanel('ready'); updateHud();
+}
+function closeGame(){
+  Snd.mood = 'calm'; sfx('tap');
+  game.active = false; game.state = 'ready'; game.fast = false;
+  game.paused = false; syncPauseBtn();
+  G.el.classList.remove('on');
+  G.el.setAttribute('aria-hidden','true');
+  G.panel.classList.remove('on');
+  G.pop.innerHTML = ''; clearDangerUi();
+  for(const o of game.obs) dropObs(o);
+  game.obs = [];
+}
+
+/* ---------- 暂停：HUD 按钮 + ESC，游戏逻辑与画面一起冻结 ---------- */
+function syncPauseBtn(){
+  const b = $('gPause');
+  b.classList.toggle('paused', game.paused);
+  b.setAttribute('aria-pressed', String(game.paused));
+  b.querySelector('.pzLabel').textContent = game.paused ? '继续' : '暂停';
+  b.title = game.paused ? '继续游戏（ESC）' : '暂停游戏（ESC）';
+}
+function pauseGame(){
+  if(!game.active || game.state !== 'playing' || game.paused) return;
+  game.paused = true;
+  clearDangerUi();
+  Snd.mood = 'calm'; sfx('tap');
+  G.card.innerHTML = `
+    <h2>先歇一会儿</h2>
+    <p>木马停在半空，点心也乖乖等着你～<br>按 <b>ESC</b> 或点下面的按钮，就能接着玩。</p>
+    <div class="gPauseStat">已坚持 ${fmtTime(Math.min(game.t, game.dur))} · 躲开 ${game.dodged} 个 · ${game.stars} 颗星</div>
+    <div class="gBtns">
+      <button class="gBtn" data-act="resume">继续游戏</button>
+      <button class="gBtn ghost" data-act="restart">重新开始</button>
+      <button class="gBtn ghost" data-act="back">回到书页</button>
+    </div>`;
+  G.card.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+    const a = b.dataset.act;
+    if(a === 'resume') resumeGame();
+    else if(a === 'restart') startRun();
+    else closeGame();
+  }));
+  G.panel.classList.add('on');
+  syncPauseBtn();
+}
+function resumeGame(){
+  if(!game.paused) return;
+  game.paused = false;
+  G.panel.classList.remove('on');
+  Snd.mood = 'play'; sfx('tap');
+  clearDangerUi(); assess();
+  syncPauseBtn();
+}
+
+/* 输入：键盘 + 触屏 */
+addEventListener('keydown', e=>{
+  if(!game.active) return;
+  const k = e.key.toLowerCase();
+  if(['arrowleft','arrowright','arrowup','arrowdown',' '].includes(k)) e.preventDefault();
+  if(k === 'escape'){
+    if(game.state === 'playing'){ game.paused ? resumeGame() : pauseGame(); }
+    else closeGame();
+    return;
+  }
+  if(k === 'arrowleft'  || k === 'a') gMove(-1,0);
+  else if(k === 'arrowright' || k === 'd') gMove( 1,0);
+  else if(k === 'arrowup'    || k === 'w') gMove(0, 1);
+  else if(k === 'arrowdown'  || k === 's') gMove(0,-1);
+}, {passive:false});
+
+let gTouch = null;
+G.el.addEventListener('pointerdown', e=>{
+  if(e.target.closest('button')) return;
+  gTouch = [e.clientX, e.clientY];
+});
+G.el.addEventListener('pointerup', e=>{
+  if(!gTouch) return;
+  const dx = e.clientX - gTouch[0], dy = e.clientY - gTouch[1];
+  gTouch = null;
+  if(Math.hypot(dx,dy) < 24) return;
+  if(Math.abs(dx) > Math.abs(dy)) gMove(dx>0?1:-1, 0);
+  else gMove(0, dy<0?1:-1);
+});
+G.el.querySelectorAll('#gTouch button').forEach(b=>b.addEventListener('click', ()=>{
+  const d = b.dataset.dir;
+  if(d === 'left') gMove(-1,0);
+  else if(d === 'right') gMove(1,0);
+  else if(d === 'up') gMove(0,1);
+  else gMove(0,-1);
+}));
+$('gExit').addEventListener('click', closeGame);
+$('gPause').addEventListener('click', ()=> game.paused ? resumeGame() : pauseGame());
+syncPauseBtn();
+
+/* ============ 跷跷板 · 快速配平游戏 ============ */
+const SS_MAX_DEG = 26;                 // 坠地（5/5）时的最大右倾角
+const SS_QTIME   = 3;                  // 每题 3 秒
+const SS_WMAX    = 5;                  // 累计答错 5 次坠地
+const SS_GOAL    = 25;                 // 答对 25 题集满 5 星
+const SS_OPS = {'+':'+','-':'−','*':'×','/':'÷'};
+const SS = {
+  el:$('ss'), board:$('ssBoard'), bearL:$('ssBearL'), bearR:$('ssBearR'),
+  shadow:$('ssShadow'), qCard:$('ssQ'), expr:$('ssExpr'), bar:$('ssBar'),
+  ans:$('ssAns'), stars:$('ssStars'), okEl:$('ssOk'), lives:$('ssLives'),
+  pop:$('ssPop'), panel:$('ssPanel'), card:$('ssCard')
+};
+const ss = {
+  active:false, state:'ready', paused:false, gen:0,
+  wrong:0, ok:0, stars:0, q:null, tLeft:SS_QTIME, angle:0,
+  tilt:0        // 视觉倾斜格数：答错 +1、答对归 0（与累计次数 wrong 彻底分离）
+};
+
+/* 出题：一位数 +-×÷（除法整除、结果非负）或两位数 +-；候选 4 选 1 */
+function ssGenQ(){
+  const R = n => 1 + Math.floor(Math.random()*n);
+  let a, b, op, ans;
+  const kind = Math.random();
+  if(kind < .42){                          // 一位数
+    if(kind < .14){      op='+'; a=R(9); b=R(9); ans=a+b; }
+    else if(kind < .26){ op='-'; a=R(9); b=R(9); if(b>a){const t=a;a=b;b=t;} ans=a-b; }
+    else if(kind < .36){ op='*'; a=R(9); b=R(9); ans=a*b; }
+    else {               op='/'; b=R(9); ans=R(9); a=b*ans; }
+  } else {                                 // 两位数加减
+    op = Math.random() < .5 ? '+' : '-';
+    a = 10 + Math.floor(Math.random()*80);
+    b = 10 + Math.floor(Math.random()*80);
+    if(op==='-' && b>a){ const t=a;a=b;b=t; }
+    ans = op==='+' ? a+b : a-b;
+  }
+  const set = new Set([ans]);
+  let guard = 0;
+  while(set.size < 4 && guard++ < 80){     // 邻近干扰项：±1~±9，非负、互异
+    const d = (Math.random()<.5?-1:1)*(1+Math.floor(Math.random()*(ans<=6?4:9)));
+    const v = ans + d;
+    if(v >= 0 && !set.has(v)) set.add(v);
+  }
+  guard = 0;
+  while(set.size < 4 && guard++ < 80){     // 小答案附近凑不满时的兜底
+    const v = Math.floor(Math.random()*(ans+12));
+    if(!set.has(v)) set.add(v);
+  }
+  return { a, b, op, ans, cands:[...set].sort(()=>Math.random()-.5) };
+}
+
+function ssUpdateHud(){ SS.okEl.innerHTML = `答对 <b>${ss.ok}</b> / ${SS_GOAL}`; }
+function ssSetLives(){
+  SS.lives.innerHTML = '<b>平衡</b>';
+  for(let i=0;i<SS_WMAX;i++){
+    const s = document.createElement('i');
+    if(i >= SS_WMAX - ss.wrong) s.className = 'off';
+    SS.lives.appendChild(s);
+  }
+}
+function ssPop(txt, bad){
+  const s = document.createElement('span');
+  s.textContent = txt;
+  if(bad) s.className = 'bad';
+  s.style.left = (Math.random()*10-5).toFixed(0) + '%';
+  SS.pop.appendChild(s);
+  while(SS.pop.children.length > 3) SS.pop.firstChild.remove();
+  setTimeout(()=>s.remove(), 980);
+}
+function ssSetStars(n){
+  if(n <= ss.stars) return;
+  const svgs = SS.stars.children;
+  for(let i=ss.stars;i<n;i++) svgs[i].outerHTML = starSvg(true);
+  ss.stars = n;
+  sfx('star');
+  bankSet('seesaw', n);               // 上报集星账本（取最高）
+}
+
+/* 倾斜渲染：目标 = 视觉倾斜(tilt，答对归零→水平) + 答题中的临时微倾；
+   累计答错次数 wrong 只管平衡格与 5 次坠地判定，不再决定板子角度 */
+function ssRender(dt){
+  let target = ss.tilt / SS_WMAX;
+  if(ss.state === 'playing' && !ss.paused && ss.q)
+    target += .08 * (1 - Math.max(0, ss.tLeft)/SS_QTIME);   // 仅答题中越接近超时越歪；换题间隙停基准
+  if(ss.state === 'over') target = 1;                        // 坠地到底
+  target = Math.min(1, target);
+  const k = Math.min(1, dt*7);
+  ss.angle += (target*SS_MAX_DEG - ss.angle)*k;
+  SS.board.style.transform = `rotate(${ss.angle.toFixed(3)}deg)`;
+  const w = Math.max(-8, Math.min(8, -ss.angle*.34));        // 小熊反相轻摆，努力坐稳
+  SS.bearL.style.transform = `rotate(${w.toFixed(2)}deg)`;
+  SS.bearR.style.transform = `rotate(${(w*1.15).toFixed(2)}deg)`;
+  SS.shadow.style.transform = `translateX(${(-50 + ss.angle*.4).toFixed(2)}%)`;
+}
+function updateSS(dt){
+  ssRender(dt);
+  // 换题/结算间隙(ss.q=null) 必须冻结倒计时：否则 tLeft 越过 0 后每帧都会重复触发
+  // ssDrop，一次超时被连扣到 5 格直接坠地——这正是「只错一道就输」的根因。
+  if(ss.state !== 'playing' || ss.paused || !ss.q) return;
+  ss.tLeft -= dt;
+  SS.bar.style.width = (Math.max(0, ss.tLeft)/SS_QTIME*100).toFixed(1) + '%';
+  SS.qCard.classList.toggle('low', ss.tLeft <= 1);
+  if(ss.tLeft <= 0) ssDrop(true);
+}
+
+function ssNewQ(){
+  ss.gen++;
+  ss.q = ssGenQ();
+  ss.tLeft = SS_QTIME;
+  SS.expr.textContent = `${ss.q.a} ${SS_OPS[ss.q.op]} ${ss.q.b} = ?`;
+  SS.ans.innerHTML = '';
+  ss.q.cands.forEach((v,i)=>{
+    const b = document.createElement('button');
+    b.className = 'ssOpt';
+    b.textContent = v;
+    b.dataset.key = i+1;
+    b.addEventListener('click', ()=>ssAnswer(v, b));
+    SS.ans.appendChild(b);
+  });
+  SS.bar.style.width = '100%';
+  SS.qCard.classList.remove('low');
+  sfx('q');
+}
+function ssNext(delay){
+  ss.q = null;                              // 锁输入，短暂展示后再出下一题
+  const g = ss.gen;
+  setTimeout(()=>{
+    if(ss.active && ss.state==='playing' && !ss.paused && ss.gen===g) ssNewQ();
+  }, delay*1000);
+}
+function ssAnswer(v, btn){
+  if(ss.state !== 'playing' || ss.paused || !ss.q) return;
+  if(btn) btn.classList.add(v === ss.q.ans ? 'hit' : 'miss');
+  if(v === ss.q.ans){
+    ss.ok++; ssUpdateHud();
+    ss.tilt = 0;                 // 答对把跷跷板压回水平（最初状态），但 wrong 累计不减
+    sfx('right');
+    if(ss.ok % 5 === 0){ ssSetStars(ss.ok/5); ssPop(`点亮第 ${ss.ok/5} 颗星！`); }
+    else ssPop(['答对啦','稳稳压住','配平成功'][Math.floor(Math.random()*3)]);
+    if(ss.ok >= SS_GOAL){ ssWin(); return; }
+    ssNext(.55);
+  } else {
+    ssDrop(false);
+  }
+}
+/* 答错 / 超时：累计次数 +1、视觉再坠一格；累计满 5 次坠地 */
+function ssDrop(timeout){
+  ss.wrong++;
+  ss.tilt = Math.min(SS_WMAX, ss.tilt + 1);
+  sfx('wrong');
+  ssSetLives();
+  ssPop(timeout ? '超时啦！坠一格' : '歪了！坠一格', true);
+  ss.q = null; SS.ans.innerHTML = '';
+  if(ss.wrong >= SS_WMAX){
+    ss.state = 'over';
+    sfx('fail');
+    setTimeout(()=>{ if(ss.active && ss.state==='over') ssShowPanel('over'); }, 750);
+    return;
+  }
+  ssNext(.7);
+}
+function ssWin(){
+  ss.state = 'win';
+  ssSetStars(5);
+  sfx('win');
+  ssShowPanel('win');
+}
+function ssButtons(label){
+  return `<div class="gBtns"><button class="gBtn" data-act="go">${label}</button>
+    <button class="gBtn ghost" data-act="back">回到书页</button></div>`;
+}
+function ssShowPanel(kind){
+  ss.state = kind;
+  SS.panel.classList.add('on');
+  if(kind === 'ready'){
+    SS.card.innerHTML = `
+      <h2>跷跷板 · 快速配平</h2>
+      <p>右端会不断出现 <b>3 秒考题</b>，在左边点出正确答案，帮小熊压稳跷跷板。<br>
+      答对把板子压回水平，答错或超时则坠一格、并消耗一格平衡；<b>答对不会补回平衡</b>，累计消耗 5 格就落地啦。<br>
+      每答对 5 题点亮 1 颗星，集满 5 颗星获胜。</p>
+      <p>点候选数作答 · 键盘 1~4 也能选 · ESC 暂停</p>
+      ${ssButtons('出发！')}`;
+  } else if(kind === 'over'){
+    SS.card.innerHTML = `
+      <h2>哎呀，坠地啦！</h2>
+      <p>这一轮答对 ${ss.ok} 题，点亮 ${ss.stars} 颗星。<br>就差一点点就压住了～</p>
+      ${bigStars(ss.stars)}
+      ${ssButtons('再来一次')}`;
+  } else {
+    SS.card.innerHTML = `
+      <h2>五颗星，配平大师！</h2>
+      <p>25 道题全部答对，跷跷板稳稳当当 ✦</p>
+      ${bigStars(5)}
+      <p>要再来一轮吗？</p>
+      ${ssButtons('再玩一次')}`;
+  }
+  SS.card.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+    if(b.dataset.act === 'back') closeSeesaw(); else ssStart();
+  }));
+}
+function ssStart(){
+  ss.paused = false; ssSyncPauseBtn();
+  SS.panel.classList.remove('on');
+  ss.state = 'playing';
+  ss.wrong = 0; ss.ok = 0; ss.stars = 0; ss.angle = 0; ss.tilt = 0; ss.q = null;
+  SS.stars.innerHTML = Array.from({length:5},()=>starSvg(false)).join('');
+  SS.pop.innerHTML = '';
+  ssSetLives(); ssUpdateHud();
+  Snd.mood = 'play'; sfx('start');
+  ssNewQ();
+}
+function ssPause(){
+  if(!ss.active || ss.state !== 'playing' || ss.paused) return;
+  ss.paused = true;
+  sfx('tap');
+  SS.card.innerHTML = `
+    <h2>先歇一会儿</h2>
+    <p>小熊稳住跷跷板等你回来～<br>按 <b>ESC</b> 或点「继续」接着玩。</p>
+    <div class="gPauseStat">已答对 ${ss.ok} 题 · 坠 ${ss.wrong}/5 格 · ${ss.stars} 颗星</div>
+    <div class="gBtns">
+      <button class="gBtn" data-act="resume">继续游戏</button>
+      <button class="gBtn ghost" data-act="restart">重新开始</button>
+      <button class="gBtn ghost" data-act="back">回到书页</button>
+    </div>`;
+  SS.card.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+    const a = b.dataset.act;
+    if(a === 'resume') ssResume();
+    else if(a === 'restart') ssStart();
+    else closeSeesaw();
+  }));
+  SS.panel.classList.add('on');
+  ssSyncPauseBtn();
+}
+function ssResume(){
+  if(!ss.paused) return;
+  ss.paused = false;
+  SS.panel.classList.remove('on');
+  sfx('tap');
+  ssSyncPauseBtn();
+  if(!ss.q && ss.state === 'playing') ssNewQ();   // 暂停若卡在换题间隙，恢复时补题
+}
+function ssSyncPauseBtn(){
+  const b = $('ssPause');
+  b.classList.toggle('paused', ss.paused);
+  b.setAttribute('aria-pressed', String(ss.paused));
+  b.querySelector('.pzLabel').textContent = ss.paused ? '继续' : '暂停';
+  b.title = ss.paused ? '继续游戏（ESC）' : '暂停游戏（ESC）';
+}
+function openSeesaw(){
+  sfx('tap');
+  ss.active = true; ss.state = 'ready'; ss.paused = false; ss.q = null;
+  ss.wrong = 0; ss.ok = 0; ss.stars = 0; ss.angle = 0; ss.tilt = 0;
+  hideBubble(); clearPicks();
+  SS.el.classList.add('on');
+  SS.el.setAttribute('aria-hidden','false');
+  SS.stars.innerHTML = Array.from({length:5},()=>starSvg(false)).join('');
+  SS.ans.innerHTML = ''; SS.pop.innerHTML = '';
+  ssSetLives(); ssUpdateHud();
+  ssSyncPauseBtn();
+  ssShowPanel('ready');
+}
+function closeSeesaw(){
+  Snd.mood = 'calm'; sfx('tap');
+  ss.active = false; ss.state = 'ready'; ss.paused = false; ss.q = null;
+  SS.el.classList.remove('on');
+  SS.el.setAttribute('aria-hidden','true');
+  SS.panel.classList.remove('on');
+  SS.ans.innerHTML = ''; SS.pop.innerHTML = '';
+  ssSyncPauseBtn();
+}
+
+/* 输入：候选点选 / 键盘 1~4 选答案 / ESC 暂停 */
+addEventListener('keydown', e=>{
+  if(!ss.active) return;
+  if(e.key === 'Escape'){
+    if(ss.state === 'playing'){ ss.paused ? ssResume() : ssPause(); }
+    else closeSeesaw();
+    return;
+  }
+  if(ss.state !== 'playing' || ss.paused || !ss.q) return;
+  const n = parseInt(e.key, 10);
+  if(n >= 1 && n <= 4){ e.preventDefault(); const b = SS.ans.children[n-1]; if(b) b.click(); }
+});
+$('ssExit').addEventListener('click', closeSeesaw);
+$('ssPause').addEventListener('click', ()=> ss.paused ? ssResume() : ssPause());
+$('ssSnd').addEventListener('click', ()=> Snd.toggle());
+
+/* ============ 秋千 · 荡高投掷游戏 ============ */
+/* 真实物理：单摆（角度 a / 角速度 v，重力 sin 项 + 阻尼）+ 抛体投掷。
+   荡高：按键给一个方向冲量，在谷点附近顺着摆动方向按才大幅增能（踩点）；
+   投掷：脱手速度 = 当前向前有效线速度 + 投掷冲量，固定仰角抛出——
+        在谷点（速度最大）投最远，在顶点（速度≈0）投几乎原地落下，时机即技巧。 */
+const SWG     = 9.8;                    // 重力 m/s²
+const SW_LEN  = 2.5;                    // 绳长 m（与视觉绳长一致）
+const SW_K    = SWG/SW_LEN;             // 单摆系数 rad/s²
+const SW_IMP  = .52;                    // 每次按键基础冲量 rad/s
+const SW_DAMP = .05;                    // 阻尼（小，能量可累积）
+const SW_AMAX   = 88*Math.PI/180;       // 物理上限角
+const SW_DANGER = 66*Math.PI/180;       // 危险角（高于满分所需，留出贪心区）
+const SW_THROW  = 2.5;                  // 投掷冲量 m/s（前上仰角抛出）
+const SW_ANG    = 42*Math.PI/180;       // 抛射仰角
+const SW_QTIME  = 5;                    // 戳球拯救 5 秒（宽松，降低难度）
+const SW_DIST   = [1, 2, 3, 4, 5];       // 距离→星级阈值（米）：≥1m 一星 … ≥5m 五星
+const SW_GRADE_TXT = ['哎呀，就近落地～','有点样子！','荡得不错！','又高又远！','飞出去啦！'];
+const SW = {
+  el:$('sw'), world:$('swWorld'), cam:$('swCam'), ticks:$('swTicks'),
+  stage:$('swStage'), pivot:$('swPivot'), bear:$('swBear'), fly:$('swFly'),
+  flag:$('swFlag'), flagTxt:document.querySelector('#swFlag b'), shadow:$('swShadow'),
+  power:$('swPower'), fill:$('swFill'), dline:$('swDangerLine'),
+  stars:$('swStars'), best:$('swBest'), throws:$('swThrows'),
+  balls:$('swBalls'), ballBar:$('swBallBar'),
+  ballFill:document.querySelector('#swBallBar .bar i'),
+  pop:$('swPop'), warn:$('swWarn'), panel:$('swPanel'), card:$('swCard')
+};
+const sw = {
+  active:false, state:'ready', paused:false,
+  a:0, v:0, sign:1, best:0, stars:0, throws:0, lastDist:0, lastGrade:0,
+  fly:null, balls:[], need:0, done:0, spawn:0, spawnT:0,
+  tLeft:0, wait:0, camX:0, groundY:0, demo:false, winPending:false
+};
+let swPXM = 120;                        // 像素/米
+
+/* 布局：按视口计算比例，摆放世界宽度 / 秋千尺寸 / 米数刻度 */
+function swLayout(){
+  swPXM = Math.max(80, Math.min(190, innerHeight*.16));
+  sw.groundY = innerHeight*.78;
+  const worldW = Math.round(58*swPXM);
+  SW.world.style.width = worldW+'px';
+  /* 秋千：座宽 ≈ 绳长/3.03（seat 素材 266×895），架子与书页同比例 */
+  const seatW = SW_LEN*swPXM/3.03;
+  const frameW = seatW/.19, frameH = frameW*1134/1400;
+  SW.stage.style.width  = frameW+'px';
+  SW.stage.style.height = frameH+'px';
+  SW.stage.style.left   = (-frameW/2)+'px';
+  SW.stage.style.top    = (sw.groundY - SW_LEN*swPXM - frameH*.075)+'px';
+  /* 米数刻度：每 5 米一根 */
+  SW.ticks.innerHTML = '';
+  for(let m=5; m<=50; m+=5){
+    const t = document.createElement('div');
+    t.className = 'swTick'; t.dataset.m = m+'m';
+    t.style.left = (m*swPXM-1.5)+'px';
+    SW.ticks.appendChild(t);
+  }
+  /* 飞行玩偶 / 旗子的尺寸（侧坐小熊 248×224） */
+  const bw = Math.round(seatW*.8);
+  SW.fly.style.width = bw+'px'; SW.fly.style.height = Math.round(bw*224/248)+'px';
+  SW.flag.style.height = Math.round(66*swPXM/124)+'px';
+}
+addEventListener('resize', ()=>{ if(sw.active) swLayout(); });
+
+/* 踩点冲量：谷点附近（|a| 小）且顺着摆动方向按 → 满加成；乱按只有零头 */
+function swPump(dir){
+  if(sw.state !== 'playing' || sw.paused) return;
+  const align = Math.sign(sw.v) === dir ? 1 : .32;
+  const phase = Math.max(0, 1 - Math.abs(sw.a)/.5);
+  const boost = .22 + .78*phase*align;
+  sw.v += dir*SW_IMP*boost;
+  sfx(boost > .6 ? 'pumpGood' : 'pump');
+}
+
+/* 掉落概率：危险角之上，角度越高概率越大（0 → .62） */
+function swDangerP(amp){
+  const t = (amp - SW_DANGER)/(SW_AMAX - SW_DANGER);
+  return t <= 0 ? 0 : Math.min(.62, Math.pow(t, 1.15)*.62);
+}
+
+/* 投掷：玩偶脱离秋千，按当前向前有效速度抛出。
+   出发点 x = 摆轴右侧固定偏移（与座板视觉位置一致，永远在秋千右侧脱手） */
+function swThrowBear(){
+  if(sw.state !== 'playing' || sw.paused) return;
+  sw.throws++;
+  swUpdateHud();
+  const a = sw.a;
+  const spd = Math.abs(sw.v)*SW_LEN*Math.cos(a) + SW_THROW;
+  sw.fly = {
+    x: SW_LEN*Math.sin(a),
+    y: -(swHeightPiv() - SW_LEN*Math.cos(a)),
+    vx: spd*Math.cos(SW_ANG), vy: -spd*Math.sin(SW_ANG),
+    rot: 0, w: SW.bear.offsetWidth, h: SW.bear.offsetWidth*224/248, bounced:false
+  };
+  SW.bear.style.display = 'none';
+  SW.fly.style.display = 'block';
+  sfx('throw');
+  sw.state = 'flying';
+}
+/* 横梁离地高度（m）：由布局尺寸反推，保持视觉与物理一致 */
+function swHeightPiv(){
+  const frameH = parseFloat(SW.stage.style.height)||0;
+  return (sw.groundY - parseFloat(SW.stage.style.top||sw.groundY) - frameH*.075)/swPXM;
+}
+
+/* 飞行抛体 + 落地弹跳 */
+function swStepFly(dt){
+  const f = sw.fly;
+  f.vy += SWG*dt;
+  f.x += f.vx*dt;
+  f.y += f.vy*dt;
+  f.rot += f.vx*26*dt;
+  if(f.y >= 0){
+    f.y = 0;
+    if(f.vy > 5 && !f.bounced){         // 高速落地弹跳一下再停
+      f.bounced = true;
+      f.vy = -f.vy*.32; f.vx *= .62;
+      sfx('land');
+    } else { swScore(); }
+  }
+}
+
+/* 评级与结算：投出 1 米一星、2 米二星……5 米五星（就近落地保底 1 星） */
+function swGrade(d){
+  let g = 1;
+  for(let i=0;i<SW_DIST.length;i++) if(d >= SW_DIST[i]) g = i+1;
+  return g;
+}
+function swScore(){
+  const dist = Math.max(0, sw.fly.x);
+  const g = swGrade(dist);
+  sw.lastDist = dist; sw.lastGrade = g;
+  if(g >= sw.best){ sw.best = g; swSetStars(g); }   // 星 = 历史最好成绩
+  SW.flag.style.display = 'block';
+  SW.flag.style.left = (dist*swPXM-2)+'px';
+  SW.flagTxt.textContent = dist.toFixed(1)+'m · '+g+'星';
+  sfx('score');
+  swPop(SW_GRADE_TXT[g-1]+'　'+dist.toFixed(1)+' 米', g>=4 ? 'gold' : '');
+  swUpdateHud();                               // 最好成绩立即刷新
+  sw.state = 'scored'; sw.wait = 1.15;
+  sw.winPending = g >= 5;
+}
+/* 一掷结束：归位，自动补一只玩偶重新开始荡 */
+function swResetRound(){
+  sw.a = 0; sw.v = 0; sw.sign = 1;
+  sw.fly = null; sw.winPending = false;
+  SW.fly.style.display = 'none';
+  SW.flag.style.display = 'none';
+  SW.bear.style.display = '';
+  sw.throws = sw.throws;              // 计数保留，HUD 在投掷时刷新
+  swUpdateHud();
+  sw.state = 'playing';
+}
+
+/* 戳球拯救 QTE：彩球陆陆续续冒出（每隔一小会儿一颗，可同屏共存），
+   5 秒内戳够总数即拯救成功 */
+function swStartRescue(){
+  sw.state = 'rescue';
+  sw.tLeft = SW_QTIME;
+  const t = (Math.abs(sw.a) - SW_DANGER)/(SW_AMAX - SW_DANGER);
+  sw.need = 3 + Math.round(2*t);
+  sw.done = 0;
+  sw.spawn = 0; sw.spawnT = 0;               // 已生成数 / 下一颗倒计时
+  SW.balls.innerHTML = ''; sw.balls = [];
+  SW.balls.classList.add('on'); SW.ballBar.classList.add('on');
+  SW.ballFill.style.width = '100%';
+  SW.bear.classList.add('help');
+  swSpawnBall();                             // 第一颗立即出现
+  sfx('warn');
+}
+/* 冒出一颗彩球（与已出现的球简单避让） */
+function swSpawnBall(){
+  if(sw.spawn >= sw.need) return;
+  sw.spawn++;
+  const b = document.createElement('button');
+  b.className = 'swBall';
+  let L, T, ok = false;
+  for(let tr=0; tr<30 && !ok; tr++){
+    L = 6 + Math.random()*82;
+    T = 15 + Math.random()*52;
+    ok = sw.balls.every(p =>
+      Math.hypot(parseFloat(p.style.left)-L, parseFloat(p.style.top)-T) > 16);
+  }
+  b.style.left = L+'%'; b.style.top = T+'%';
+  b.addEventListener('pointerdown', ev=>{
+    ev.stopPropagation();
+    swPopBall(b);
+  });
+  SW.balls.appendChild(b);
+  sw.balls.push(b);
+  SW.ballBar.querySelector('.lbl').textContent =
+    `小熊快抓不住了！戳破彩球救它（${sw.done}/${sw.need}）`;
+}
+function swPopBall(b){
+  if(sw.state !== 'rescue') return;
+  const i = sw.balls.indexOf(b);
+  if(i < 0) return;
+  sw.balls.splice(i, 1);
+  b.classList.add('gone');
+  setTimeout(()=>b.remove(), 320);           // 仅清理动画节点
+  sfx('bubble');
+  sw.done++;
+  SW.ballBar.querySelector('.lbl').textContent =
+    `小熊快抓不住了！戳破彩球救它（${sw.done}/${sw.need}）`;
+  if(sw.done >= sw.need) swRescueOk();
+}
+function swRescueOk(){
+  sw.state = 'playing';
+  SW.balls.classList.remove('on'); SW.ballBar.classList.remove('on');
+  SW.bear.classList.remove('help');
+  SW.balls.innerHTML = ''; sw.balls = [];
+  sw.v *= .72;                                // 抓稳时泄一点能量，需要重新踩点
+  sfx('right');
+  swPop('小熊抓稳啦！');
+}
+function swRescueFail(){
+  sw.state = 'dropping';
+  SW.balls.classList.remove('on'); SW.ballBar.classList.remove('on');
+  SW.balls.innerHTML = ''; sw.balls = [];
+  SW.bear.classList.remove('help');
+  SW.bear.style.display = 'none';
+  const bw = Math.round(parseFloat(SW.fly.style.width)||80);
+  const bh = Math.round(bw*224/248);
+  SW.fly.style.width = bw+'px'; SW.fly.style.height = bh+'px';
+  sw.fly = {
+    x: SW_LEN*Math.sin(sw.a), y: -(swHeightPiv() - SW_LEN*Math.cos(sw.a)),
+    vx: sw.v*SW_LEN*.4, vy: 0, rot: 0, w: bw, h: bh, bounced:false
+  };
+  SW.fly.style.display = 'block';
+  sfx('drop');
+  swPop('小熊掉下去啦……', true);
+  sw.wait = .9;
+}
+
+/* 渲染：秋千摆动 / 玩偶水平化 / 影子 / 高度计 / 预警 / 相机
+   角度约定：a>0 = 向前 = 画面右（小熊面朝方向）；pivot 视觉旋转取负号 */
+function swRender(dt){
+  const deg = sw.a*180/Math.PI;
+  SW.pivot.style.transform = `rotate(${(-deg).toFixed(2)}deg)`;
+  const wob = sw.state==='playing' ? Math.sin(clock*9)*2.2 : 0;
+  SW.bear.style.transform = `rotate(${(deg+wob).toFixed(2)}deg)`;
+  const c = Math.max(0, Math.cos(sw.a));
+  SW.shadow.style.transform = `scale(${(0.5+0.5*c).toFixed(3)})`;
+  SW.shadow.style.opacity = (0.32+0.4*c).toFixed(2);
+  const amp = Math.min(1, Math.abs(sw.a)/SW_AMAX);
+  SW.fill.style.height = (amp*100).toFixed(1)+'%';
+  SW.power.classList.toggle('danger', Math.abs(sw.a) > SW_DANGER);
+  SW.warn.classList.toggle('on', sw.state==='playing' && Math.abs(sw.a) > SW_DANGER*.9);
+  $('swThrowBtn').classList.toggle('hot',
+    sw.state==='playing' && Math.abs(sw.a) < .18 && Math.abs(sw.v) > 1.6);
+  if(sw.fly && (sw.state==='flying' || sw.state==='dropping' || sw.state==='scored')){
+    SW.fly.style.left = (sw.fly.x*swPXM - sw.fly.w/2)+'px';
+    SW.fly.style.top  = (sw.groundY + sw.fly.y*swPXM - (sw.fly.h||sw.fly.w))+'px';
+    SW.fly.style.transform = `rotate(${sw.fly.rot.toFixed(1)}deg)`;
+  }
+  let target = 0;
+  if(sw.fly && sw.state !== 'playing' && sw.state !== 'rescue')
+    target = Math.max(0, sw.fly.x*swPXM - innerWidth*.38);
+  sw.camX += (target - sw.camX)*Math.min(1, dt*5);
+  SW.cam.style.transform = `translateX(${-sw.camX.toFixed(1)}px)`;
+}
+
+/* 主更新：按状态推进 */
+function updateSW(dt){
+  if(sw.state === 'playing'){
+    sw.v += (-SW_K*Math.sin(sw.a) - SW_DAMP*sw.v)*dt;
+    sw.a += sw.v*dt;
+    if(Math.abs(sw.a) > SW_AMAX){ sw.a = Math.sign(sw.a)*SW_AMAX; sw.v *= -.22; }
+    const s = Math.sign(sw.v) || sw.sign;
+    if(s !== sw.sign){                        // 摆动峰值：判定掉落风险
+      sw.sign = s;
+      const amp = Math.abs(sw.a);
+      if(amp > SW_DANGER && !sw.demo && Math.random() < swDangerP(amp)){
+        swStartRescue();
+      }
+    }
+  } else if(sw.state === 'flying'){
+    swStepFly(dt);
+  } else if(sw.state === 'scored'){
+    sw.wait -= dt;
+    if(sw.wait <= 0){
+      if(sw.winPending){ sw.state = 'win'; swSetStars(5); swShowPanel('win'); }
+      else swResetRound();
+    }
+  } else if(sw.state === 'rescue'){
+    sw.tLeft -= dt;
+    SW.ballFill.style.width = (Math.max(0, sw.tLeft)/SW_QTIME*100).toFixed(1)+'%';
+    sw.spawnT -= dt;
+    if(sw.spawnT <= 0 && sw.spawn < sw.need){   // 彩球陆陆续续冒出
+      swSpawnBall();
+      sw.spawnT = .42;
+    }
+    if(sw.tLeft <= 0) swRescueFail();
+  } else if(sw.state === 'dropping'){
+    swStepFly(dt);
+    sw.wait -= dt;
+    if(sw.wait <= 0){ sw.state = 'over'; sfx('fail'); swShowPanel('over'); }
+  }
+  swRender(dt);
+}
+
+function swUpdateHud(){
+  SW.best.innerHTML = sw.best ? `最好 <b>${sw.best} 星 · ${sw.lastDist.toFixed(1)}m</b>` : '最好 <b>—</b>';
+  SW.throws.innerHTML = `第 <b>${sw.throws+1}</b> 掷`;
+}
+function swSetStars(n){
+  const svgs = SW.stars.children;
+  for(let i=0;i<5;i++){
+    const lit = i < n;
+    const was = svgs[i] && svgs[i].classList.contains('lit');
+    if(svgs[i] && was !== lit) svgs[i].outerHTML = starSvg(lit);   // 只改变化的，保留点亮动画
+  }
+  sw.stars = n;
+  if(n > 0 && sw.state !== 'win') sfx('star');
+  bankSet('swing', n);                // 上报集星账本（取最高）
+}
+function swPop(txt, cls){
+  const s = document.createElement('span');
+  s.textContent = txt;
+  if(cls) s.className = cls;
+  s.style.left = (Math.random()*10-5).toFixed(0)+'%';
+  SW.pop.appendChild(s);
+  while(SW.pop.children.length > 3) SW.pop.firstChild.remove();
+  setTimeout(()=>s.remove(), 980);
+}
+function swButtons(label){
+  return `<div class="gBtns"><button class="gBtn" data-act="go">${label}</button>
+    <button class="gBtn ghost" data-act="back">回到书页</button></div>`;
+}
+function swShowPanel(kind){
+  sw.state = kind;
+  SW.panel.classList.add('on');
+  if(kind === 'ready'){
+    SW.card.innerHTML = `
+      <h2>秋千 · 荡高高，投得远</h2>
+      <p>⬆⬇（或点下方按键）推秋千——<b>踩着摆动的节奏</b>按，越荡越高；乱按可没劲哦。<br>
+      按 <b>投掷 / 空格</b> 把小熊抛出去，飞得越远星级越高：</p>
+      <div class="swDist">
+        <div><b>1星</b>≥1m</div><div><b>2星</b>≥2m</div><div><b>3星</b>≥3m</div>
+        <div><b>4星</b>≥4m</div><div><b>5星</b>≥5m</div>
+      </div>
+      <p>荡过<b>危险角</b>小熊会抓不稳——快戳破彩球救它，5 秒戳不完就落地输啦。<br>
+      就近落地也保底 1 星，投到 <b>5 米</b>集满五星获胜！</p>
+      <p>↑↓ 荡秋千 · 空格投掷 · ESC 暂停</p>
+      ${swButtons('出发！')}`;
+  } else if(kind === 'over'){
+    const bestTxt = sw.best ? `最好成绩 <b style="color:#e0912e">${sw.best} 星 · ${sw.lastDist.toFixed(1)} 米</b>` : '还没来得及投掷一次';
+    SW.card.innerHTML = `
+      <h2>哎呀，小熊摔了个屁股蹲儿！</h2>
+      <p>共投掷 ${sw.throws} 次，${bestTxt}。<br>下次记得早点撒手～</p>
+      ${bigStars(sw.best)}
+      ${swButtons('再来一次')}`;
+  } else {
+    SW.card.innerHTML = `
+      <h2>五颗星，投掷大师！</h2>
+      <p>最远一掷 ${sw.lastDist.toFixed(1)} 米，小熊划出一道完美的弧线 ✦</p>
+      ${bigStars(5)}
+      <p>要再飞一次吗？</p>
+      ${swButtons('再玩一次')}`;
+  }
+  SW.card.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+    if(b.dataset.act === 'back') closeSwing(); else swStart();
+  }));
+}
+function swStart(){
+  sw.paused = false; swSyncPauseBtn();
+  SW.panel.classList.remove('on');
+  sw.state = 'playing';
+  sw.a = 0; sw.v = 0; sw.sign = 1;
+  sw.best = 0; sw.stars = 0; sw.throws = 0; sw.lastDist = 0; sw.lastGrade = 0;
+  sw.fly = null; sw.winPending = false; sw.need = 0; sw.done = 0; sw.spawn = 0; sw.spawnT = 0;
+  SW.fly.style.display = 'none'; SW.flag.style.display = 'none';
+  SW.bear.style.display = ''; SW.bear.classList.remove('help');
+  SW.stars.innerHTML = Array.from({length:5},()=>starSvg(false)).join('');
+  SW.pop.innerHTML = '';
+  SW.balls.classList.remove('on'); SW.ballBar.classList.remove('on');
+  SW.balls.innerHTML = ''; sw.balls = [];
+  swUpdateHud();
+  Snd.mood = 'play'; sfx('start');
+}
+function swPause(){
+  if(!sw.active || sw.state==='ready' || sw.state==='win' ||
+     sw.state==='over' || sw.paused) return;
+  sw.paused = true;
+  sfx('tap');
+  SW.card.innerHTML = `
+    <h2>先歇一会儿</h2>
+    <p>小熊坐在秋千上等你回来～<br>按 <b>ESC</b> 或点「继续」接着玩。</p>
+    <div class="gPauseStat">已投 ${sw.throws} 次 · 最好 ${sw.best ? sw.best+' 星 · '+sw.lastDist.toFixed(1)+'m' : '—'} · ${sw.best} 颗星</div>
+    <div class="gBtns">
+      <button class="gBtn" data-act="resume">继续游戏</button>
+      <button class="gBtn ghost" data-act="restart">重新开始</button>
+      <button class="gBtn ghost" data-act="back">回到书页</button>
+    </div>`;
+  SW.card.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+    const a = b.dataset.act;
+    if(a === 'resume') swResume();
+    else if(a === 'restart') swStart();
+    else closeSwing();
+  }));
+  SW.panel.classList.add('on');
+  swSyncPauseBtn();
+}
+function swResume(){
+  if(!sw.paused) return;
+  sw.paused = false;
+  SW.panel.classList.remove('on');
+  sfx('tap');
+  swSyncPauseBtn();
+}
+function swSyncPauseBtn(){
+  const b = $('swPause');
+  b.classList.toggle('paused', sw.paused);
+  b.setAttribute('aria-pressed', String(sw.paused));
+  b.querySelector('.pzLabel').textContent = sw.paused ? '继续' : '暂停';
+  b.title = sw.paused ? '继续游戏（ESC）' : '暂停游戏（ESC）';
+}
+function openSwing(){
+  sfx('tap');
+  sw.active = true; sw.state = 'ready'; sw.paused = false;
+  sw.a = 0; sw.v = 0; sw.best = 0; sw.stars = 0; sw.throws = 0; sw.fly = null;
+  hideBubble(); clearPicks();
+  SW.el.classList.add('on');
+  SW.el.setAttribute('aria-hidden','false');
+  swLayout();                                   // 显示后再量尺寸
+  SW.stars.innerHTML = Array.from({length:5},()=>starSvg(false)).join('');
+  SW.pop.innerHTML = '';
+  SW.balls.classList.remove('on'); SW.ballBar.classList.remove('on');
+  SW.balls.innerHTML = ''; sw.balls = [];
+  swUpdateHud(); swSyncPauseBtn();
+  swShowPanel('ready');
+}
+function closeSwing(){
+  Snd.mood = 'calm'; sfx('tap');
+  sw.active = false; sw.state = 'ready'; sw.paused = false;
+  SW.el.classList.remove('on');
+  SW.el.setAttribute('aria-hidden','true');
+  SW.panel.classList.remove('on');
+  SW.pop.innerHTML = '';
+  SW.balls.classList.remove('on'); SW.ballBar.classList.remove('on');
+  SW.balls.innerHTML = ''; sw.balls = [];
+  swSyncPauseBtn();
+}
+
+/* 输入：键盘 ⬆⬇ 荡 / 空格投掷 / ESC 暂停 + 触屏按键 */
+addEventListener('keydown', e=>{
+  if(!sw.active) return;
+  const k = e.key.toLowerCase();
+  if(['arrowup','arrowdown',' ','w','s'].includes(k)) e.preventDefault();
+  if(k === 'escape'){
+    if(sw.state==='playing' || sw.state==='flying' || sw.state==='rescue' || sw.state==='scored'){
+      sw.paused ? swResume() : swPause();
+    } else closeSwing();
+    return;
+  }
+  if(k === ' ' || k === 'enter'){
+    if(sw.state==='playing') swThrowBear();
+    else if(sw.state==='ready' || sw.state==='over' || sw.state==='win') swStart();
+    return;
+  }
+  if(k === 'arrowup'   || k === 'w') swPump(1);
+  else if(k === 'arrowdown' || k === 's') swPump(-1);
+}, {passive:false});
+$('swFwd').addEventListener('click', ()=>swPump(1));
+$('swBack').addEventListener('click', ()=>swPump(-1));
+$('swThrowBtn').addEventListener('click', ()=>swThrowBear());
+$('swExit').addEventListener('click', closeSwing);
+$('swPause').addEventListener('click', ()=> sw.paused ? swResume() : swPause());
+$('swSnd').addEventListener('click', ()=> Snd.toggle());
+
+/* 演示 / 无头截图：#ssready 面板、#ss 开局、#sstilt 倾斜、#ssflat 答对回正、#sspause 暂停、#sswin/#sslose 结算 */
+if(location.hash.indexOf('ss') >= 0){
+  document.documentElement.classList.add('instant');
+  stage.classList.add('in');
+  const h = location.hash;
+  openSeesaw();
+  if(h.indexOf('ready') < 0){
+    ssStart();
+    if(h.indexOf('win') >= 0){
+      ss.ok = SS_GOAL - 1; ssUpdateHud(); ssSetStars(4);
+      ssNewQ(); ssAnswer(ss.q.ans);           // 走真实流程点亮第 5 颗星并结算
+    } else if(h.indexOf('lose') >= 0){
+      ss.wrong = SS_WMAX - 1; ssSetLives(); ssNewQ();
+      ssAnswer(ss.q.cands.find(v=>v !== ss.q.ans));
+      ss.angle = SS_MAX_DEG; ssRender(1/60);  // 直接坠到底供截图
+    } else if(h.indexOf('pause') >= 0){
+      ssNewQ(); ss.tLeft = 1.6; updateSS(1/60); ssPause();
+    } else if(h.indexOf('tilt') >= 0){
+      ss.wrong = 2; ss.tilt = 2; ssSetLives(); ssNewQ(); ss.tLeft = .7;
+      for(let i=0;i<40;i++) ssRender(1/60);
+    } else if(h.indexOf('flat') >= 0){   /* 演示新规则：累计错 2 次，但答对后板子水平、平衡格灰 2 格 */
+      ss.wrong = 2; ss.tilt = 0; ssSetLives(); ssNewQ();
+      for(let i=0;i<40;i++) ssRender(1/60);
+    } else {
+      ssNewQ();
+    }
+  }
+}
+
+/* 秋千游戏演示 / 无头截图：#sw 开局、#swfly 飞行、#swscore 落地、#swrescue 戳球、#swpause 暂停、#swwin/#swlose 结算 */
+if(location.hash.indexOf('#sw') === 0){
+  document.documentElement.classList.add('instant');
+  stage.classList.add('in');
+  const h = location.hash;
+  openSwing();
+  sw.demo = true;                                // 演示态不随机触发掉落 QTE
+  if(h.indexOf('ready') < 0){
+    swStart();
+    if(h.indexOf('fly') >= 0){
+      sw.a = .45; sw.v = 2.6; swThrowBear();
+      for(let i=0;i<22;i++) updateSW(1/60);      // 飞到空中定格
+    } else if(h.indexOf('score') >= 0){
+      sw.a = .45; sw.v = 2.6; swThrowBear();
+      for(let i=0;i<200 && sw.state!=='scored';i++) updateSW(1/60);
+    } else if(h.indexOf('rescue') >= 0){
+      sw.a = 1.28; sw.v = 0; swRender(1/60); swStartRescue();
+      for(let i=0;i<56;i++) updateSW(1/60);      // 0.9s：多颗彩球陆续出现并存
+    } else if(h.indexOf('win') >= 0){
+      sw.fly = {x:12.6, y:-2, vx:0, vy:0, rot:0, w:80, bounced:true};
+      sw.state = 'flying'; swScore();
+      for(let i=0;i<80 && sw.state!=='win';i++) updateSW(1/60);
+    } else if(h.indexOf('lose') >= 0){
+      sw.a = 1.3; sw.v = 0; swRender(1/60);
+      swStartRescue(); sw.tLeft = .01;
+      for(let i=0;i<120 && sw.state!=='over';i++) updateSW(1/60);
+    } else if(h.indexOf('pause') >= 0){
+      sw.a = .5; sw.v = 1.4;
+      for(let i=0;i<20;i++) updateSW(1/60);
+      swPause();
+    } else {                                     // 开局：预荡几摆，有动能
+      sw.a = .4; sw.v = 1.9;
+      for(let i=0;i<18;i++) updateSW(1/60);
+    }
+  }
+}
+
+/* 截图 / 演示用：带 #shot 时跳过入场动画并可指定状态 */
+if(location.hash.indexOf('shot') >= 0){
+  document.documentElement.classList.add('instant');
+  stage.classList.add('in');
+  const h = location.hash;
+  if(h.indexOf('spin') >= 0){ rideBtn.click(); spin.ang = 0.55; spin.speed = .72; }
+  if(h.indexOf('tilt') >= 0){ tee.a = MAXA; tee.v = 0; }
+  if(h.indexOf('swing') >= 0){ seats[0].a = 0.21; seats[1].a = -0.17; }
+  if(h.indexOf('talk') >= 0){ open('bearA'); }
+  if(h.indexOf('bearb') >= 0){ open('bearB'); }
+  if(h.indexOf('car') >= 0){ open('carousel'); }
+  if(h.indexOf('see') >= 0){
+    open('seesaw');
+    const n = (parseInt((h.match(/see(\d+)/)||[])[1], 10) || 1) - 1;
+    for(let k=0; k<n; k++) open('seesaw');
+  }
+  if(h.indexOf('qiu') >= 0){ open('swing'); }
+  if(h.indexOf('play') >= 0){ open('carousel'); startGame('carousel'); }
+  if(h.indexOf('bank') >= 0){      /* 集星徽标：展开明细 */
+    bank.carousel=5; bank.seesaw=3; bank.swing=4; renderBank();
+    $('starBank').classList.add('open');
+  }
+  if(h.indexOf('honey') >= 0){     /* 集满 15 星 + 点小熊领蜂蜜 */
+    bank.carousel=5; bank.seesaw=5; bank.swing=5; renderBank();
+    open('bearA');
+  }
+}
+
+/* 游戏演示 / 无头截图：#game 直接开局、#gametest 加速、#gamefull 通关、#gamewin/#gamelose 结算 */
+if(location.hash.indexOf('game') >= 0){
+  document.documentElement.classList.add('instant');
+  stage.classList.add('in');
+  const h = location.hash;
+  openGame();
+  if(h.indexOf('ready') < 0){
+    startRun();
+    game.god = true;                       // 演示状态不随机撞车
+    if(h.indexOf('test') >= 0) game.fast = true;
+    if(h.indexOf('win') >= 0){ game.t = game.dur; setStars(5); win(); }
+    else if(h.indexOf('lose') >= 0){ game.t = 128; setStars(2); fail(); }
+    else if(h.indexOf('danger') >= 0){   /* 摆一个明确的危险障碍，展示预警与操作建议 */
+      for(const o of game.obs) dropObs(o); game.obs = [];
+      const d = makeObs(1, 'cake'); d.z = .80; game.obs.push(d);
+      posObs(d);
+      game.col = 1; game.lane = 1; game.cx = 1; game.ly = 1;
+      setPosUi(); updateGrid(); assess(); updateGame(1/60);
+    }
+    else if(h.indexOf('dodge') >= 0){    /* 展示成功躲避的飘字 / 涟漪 */
+      for(const o of game.obs) dropObs(o); game.obs = [];
+      showDodge(true); showDodge(false);
+      game.col = 1; game.lane = 1; game.cx = 1; game.ly = 1;
+      setPosUi(); updateGrid(); assess(); updateGame(1/60);
+    }
+    else if(h.indexOf('pause') >= 0){    /* 演示暂停面板：先跑一段再停车 */
+      for(let i=0;i<90;i++) updateGame(1/60);
+      game.col = 1; game.lane = 2; game.cx = 1; game.ly = 2;
+      setPosUi(); updateGrid(); updateGame(1/60);
+      pauseGame();
+    }
+    else if(h.indexOf('layers') >= 0){   /* 演示格子化：上蛋糕 / 中甜甜圈 / 下面包，两格各自独立 */
+      for(const o of game.obs) dropObs(o); game.obs = [];
+      [ [0,'cake'], [1,'donut'], [2,'bread'] ].forEach(([c,t])=>{
+        const o = makeObs(c,t); o.z = .84; game.obs.push(o);
+      });
+      game.col = 1; game.lane = 2; game.cx = 1; game.ly = 2;
+      setPosUi(); updateGrid(); updateGame(1/60);
+      game.paused = true;               // 定格这一帧，避免截图时障碍飞走
+    }
+    else {
+      const n = h.indexOf('full') >= 0 ? 920 : (h.indexOf('test') >= 0 ? 200 : 130);
+      for(let i=0;i<n;i++) updateGame(1/60);
+      const pm = h.match(/pos(\d)(\d)/);        /* #gamepos02 → 第0列 第2层 */
+      if(pm){ game.col = +pm[1]; game.lane = +pm[2]; setPosUi(); updateGrid();
+              game.cx = game.col; game.ly = game.lane; updateGame(1/60); }
+      if(h.indexOf('full') >= 0 && game.state === 'playing'){ game.t = game.dur; win(); }
+    }
+  }
+}
+
+/* 自动化自检：模拟指针事件，把结果写进 <title> */
+if(location.hash.indexOf('selftest') >= 0){
+  document.documentElement.classList.add('instant');
+  stage.classList.add('in');
+  const R = {};
+  const sleep = ms => new Promise(r=>setTimeout(r, ms));
+  // 无头环境下 rAF 不推进：自检时手动推进物理循环
+  const tick = (n, dt) => { for(let i=0;i<n;i++){ clock += dt; step(dt, clock); } };
+  const pe = (el, type, x, y, extra) => el.dispatchEvent(new PointerEvent(type,
+    Object.assign({bubbles:true, cancelable:true, pointerId:1, pointerType:'mouse',
+      clientX:x, clientY:y}, extra||{})));
+
+  (async ()=>{
+    await sleep(60); tick(2, 1/60);
+    // 1. 木马按钮
+    const x0 = spin.items[0].f.g.style.left;
+    rideBtn.click();
+    tick(45, 1/60);
+    R.frames = frameN; R.lastDt = +lastDt.toFixed(4);
+    R.spinOn = spin.on;
+    R.spinSpeed = +spin.speed.toFixed(3);
+    R.horseMoved = (spin.items[0].f.g.style.left !== x0);
+    R.label = rideLbl.textContent;
+    rideBtn.click();
+    tick(80, 1/60);
+    R.spinStopped = spin.speed < .05;
+    R.horseAng = +spin.ang.toFixed(2);
+
+    // 2. 跷跷板
+    const hr = $('seesawHitR').getBoundingClientRect();
+    pe($('seesawHitR'), 'pointerdown', hr.left+hr.width/2, hr.top+hr.height/2);
+    tick(18, 1/60);
+    R.teeAngle = +(tee.a*180/Math.PI).toFixed(2);
+    R.boardTransform = sBoard.style.transform;
+    const hl = $('seesawHitL').getBoundingClientRect();
+    pe($('seesawHitL'), 'pointerdown', hl.left+hl.width/2, hl.top+hl.height/2);
+    tick(30, 1/60);
+    R.teeAngleL = +(tee.a*180/Math.PI).toFixed(2);
+
+    // 3. 秋千拖动
+    const sr = seats[0].el.getBoundingClientRect();
+    const sx = sr.left + sr.width*0.5, sy = sr.top + sr.height*0.86;
+    pe(seats[0].el, 'pointerdown', sx, sy);
+    await sleep(30);
+    R.swingDragging = seats[0].drag;
+    for(let k=1;k<=6;k++){ pe(seats[0].el, 'pointermove', sx + k*13, sy - k*2); await sleep(22); }
+    R.swingAngle = +(seats[0].a*180/Math.PI).toFixed(2);
+    pe(seats[0].el, 'pointerup', sx+78, sy-12);
+    R.swingReleasedV = +seats[0].v.toFixed(3);
+    R.swingDragEnded = !seats[0].drag;
+    tick(30, 1/60);
+    R.swingMovedAfter = +(seats[0].a*180/Math.PI).toFixed(2);
+    tick(120, 1/60);
+    R.swingSettled = +(seats[0].a*180/Math.PI).toFixed(2);
+
+    // 4. 对话与选中
+    const pev = el => el.dispatchEvent(new PointerEvent('pointerdown',
+      {bubbles:true, cancelable:true, pointerId:1, pointerType:'mouse', clientX:0, clientY:0}));
+    const pevUp = el => el.dispatchEvent(new PointerEvent('pointerup',
+      {bubbles:true, cancelable:true, pointerId:1, pointerType:'mouse', clientX:0, clientY:0}));
+
+    pev($('bearA')); await sleep(30);
+    R.bearAShown = bubble.classList.contains('show');
+    R.bearAText = bTxt.textContent;
+    pev($('bearB')); await sleep(30);
+    R.bearBText = bTxt.textContent;
+
+    pev($('carousel')); await sleep(30);
+    R.carPicked = $('carousel').classList.contains('picked');
+    R.carText = bTxt.textContent;
+    R.carPlay = bPlay.classList.contains('show');
+
+    pev($('swing')); pevUp($('swing')); await sleep(30);
+    R.swingPicked = $('swing').classList.contains('picked');
+    R.swingText = bTxt.textContent;
+
+    pev($('seesaw')); await sleep(30);
+    R.see1 = bTxt.textContent;
+    pev($('seesaw')); await sleep(30);
+    R.see2 = bTxt.textContent;
+    R.seePlayMid = bPlay.classList.contains('show');
+    R.seeNextMid = bNext.classList.contains('on');
+    pev($('seesaw')); await sleep(30);
+    R.see3 = bTxt.textContent;
+    R.seePlayLast = bPlay.classList.contains('show');
+
+    // 开始游戏（此时对话源是跷跷板）
+    bPlay.click(); await sleep(30);
+    R.playBubbleClosed = !bubble.classList.contains('show');
+    R.playSeesawGame = SS.el.classList.contains('on');   /* 「开始游戏」现在打开配平游戏 */
+    R.ssReadyShown = ss.state === 'ready' && SS.panel.classList.contains('on');
+    closeSeesaw();
+    R.playSeesawClosed = !SS.el.classList.contains('on');
+
+    // 点空白：收起并取消选中
+    document.body.dispatchEvent(new PointerEvent('pointerdown',
+      {bubbles:true, cancelable:true, pointerId:1, pointerType:'mouse', clientX:5, clientY:5}));
+    await sleep(30);
+    R.closedAfterBlank = !bubble.classList.contains('show');
+    R.picksCleared = !document.querySelector('.picked');
+
+    // 5. 骑乘游戏
+    openGame();
+    R.diag = [innerWidth, innerHeight, G.el.offsetWidth, G.card.offsetWidth,
+      getComputedStyle(G.card).width, getComputedStyle(G.card).minWidth].join('|');
+    R.gCardW = G.card.offsetWidth;
+    const leg = G.card.querySelector('.gLegend');
+    R.gLegW = leg ? leg.scrollWidth + '/' + leg.clientWidth : 'none';
+    startRun();
+    game.god = true;
+    R.gOpen = G.el.classList.contains('on');
+    R.gState = game.state;
+    for(let i=0;i<120;i++) updateGame(1/60);
+    R.gObsSpawned = game.obs.length;
+    R.gTime = fmtTime(game.t);
+    game.col = 0; game.lane = 2;
+    gMove(1, 0); gMove(0, -1);
+    R.gMove = [game.col, game.lane];
+    R.gSafe = [SAFE.cake.join(''), SAFE.bread.join(''), SAFE.donut.join('')].join('|');
+    // 强制一次必撞：中列蛋糕 + 玩家停中档
+    game.god = false; game.col = 1; game.lane = 1;
+    const probe = makeObs(1, 'cake'); probe.z = .95; game.obs.push(probe);
+    updateGame(1/60);
+    R.gFailed = game.state === 'over';
+    R.gPanel = G.panel.classList.contains('on');
+    // 通关：无敌 + 时间拉满
+    startRun(); game.god = true; game.t = game.dur - .01;
+    updateGame(1/60);
+    R.gWin = game.state === 'win';
+    R.gStars = game.stars;
+    closeGame();
+    R.gClosed = !G.el.classList.contains('on');
+
+    // 6. 格子化占层：每格一个独立小点心，中间层恒为甜甜圈
+    startRun();
+    R.gLayers = [BLOCK.donut.length, BLOCK.cake.length, BLOCK.bread.length].join('|');
+    const ck = makeObs(1,'cake'), bd = makeObs(1,'bread'), dn = makeObs(1,'donut');
+    R.gPieces = [dn.pieces.length, ck.pieces.length, bd.pieces.length].join('|');
+    R.gTagCake = ck.tag.textContent;
+    R.gStackCls = [dn.pieces[0].el.classList.contains('stack'),
+                   ck.pieces[0].el.classList.contains('stack')].join('|');
+    // 每层点心映射 上cake/中donut/下bread；每片图案与所在层一致、中间层恒甜甜圈
+    R.gLaneMap = [2,1,0].map(l=>LANE_TYPE[l]).join('|');
+    R.gCakePieces  = ck.pieces.map(p=>p.lane+':'+p.pt).sort().join(',');
+    R.gBreadPieces = bd.pieces.map(p=>p.lane+':'+p.pt).sort().join(',');
+    R.gMidDonut = [ck,bd,dn].every(o=>o.pieces.filter(p=>p.lane===1).every(p=>p.pt==='donut'));
+    R.gClassMatch = [ck,bd,dn].every(o=>o.pieces.every(p=>p.el.classList.contains(p.pt)));
+    ck.z = .8; game.obs.push(ck); updateGrid();
+    R.gDangerCells = [...G.cells].filter(c=>c.classList.contains('danger')).length;
+    for(const o of [ck,bd,dn]) dropObs(o); game.obs = [];
+
+    // 7. 暂停：HUD 按钮 / ESC / 冻结 / 恢复
+    openGame(); startRun(); game.god = true;
+    for(let i=0;i<40;i++) updateGame(1/60);
+    const tBefore = game.t;
+    $('gPause').click();
+    R.gPaused = game.paused;
+    R.gPausePanel = G.panel.classList.contains('on');
+    R.gPauseBtns = G.card.querySelectorAll('[data-act]').length;
+    tick(40, 1/60);                          // 经 step：paused 应完全冻结
+    R.gTimeFrozen = Math.abs(game.t - tBefore) < 1e-6;
+    dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));   // ESC 恢复
+    R.gResumed = !game.paused && !G.panel.classList.contains('on');
+    closeGame();
+
+    // 8. 声音系统：自动化态静默，但调用链路必须畅通、不抛错
+    R.sndAuto  = SND_AUTO;
+    R.sndOn    = Snd.on;
+    R.sndCtx   = !!Snd.ac;                /* 调试态应为 false（静默） */
+    R.sndCalls = Snd.calls;               /* 各交互应已累计音效调用 */
+    R.sndBtns  = document.querySelectorAll('.sndBtn').length;
+    Snd.toggle(); R.sndToggleOff = !Snd.on;
+    Snd.toggle(); R.sndToggleBack = Snd.on;
+
+    // 9. 跷跷板 · 配平游戏：出题合法性 / 键盘作答 / 答对回正 / 答错坠格 / 超时 / 坠地 / 通关 / 暂停
+    openSeesaw();
+    R.ssOpen = SS.el.classList.contains('on');
+    R.ssReady = ss.state === 'ready' && SS.panel.classList.contains('on');
+    ssStart();
+    R.ssQ0 = !!ss.q && ss.q.cands.length === 4 && ss.q.cands.includes(ss.q.ans);
+    R.ssGen200 = (()=>{                    /* 200 道题合法性抽查 */
+      for(let i=0;i<200;i++){
+        const q = ssGenQ();
+        if(!(Number.isInteger(q.ans) && q.ans >= 0 && q.cands.length === 4 &&
+             q.cands.includes(q.ans) && new Set(q.cands).size === 4 &&
+             q.cands.every(v=>Number.isInteger(v) && v >= 0))) return false;
+      }
+      return true;
+    })();
+    const kIdx = ss.q.cands.indexOf(ss.q.ans);
+    dispatchEvent(new KeyboardEvent('keydown',{key:String(kIdx+1)}));
+    R.ssKey = ss.ok === 1;
+    for(let i=0;i<4;i++){ ssNewQ(); ssAnswer(ss.q.ans); }
+    R.ssStar1 = ss.ok === 5 && ss.stars === 1;
+    ssNewQ();
+    const w0 = ss.wrong;
+    ssAnswer(ss.q.cands.find(v=>v !== ss.q.ans));
+    R.ssWrong = ss.wrong === w0 + 1;
+    ssNewQ(); ss.tLeft = .01; updateSS(1/60);
+    R.ssTimeout = ss.wrong === w0 + 2;
+    // 回归：超时后进入换题间隙(q=null)，连跑 60 帧不得重复扣血
+    const wGap = ss.wrong;
+    for(let i=0;i<60;i++) updateSS(1/60);
+    R.ssGapNoLeak = ss.wrong === wGap;
+    ssNewQ();
+    for(let i=0;i<40;i++) updateSS(1/60);
+    R.ssRecover = Math.abs(ss.angle - (ss.tilt/SS_WMAX)*SS_MAX_DEG) < 1.5;
+    // 关键回归：答对回正到水平（tilt→0、angle→0），但累计次数 wrong 不减
+    const wBeforeRight = ss.wrong;
+    ssNewQ(); ssAnswer(ss.q.ans);
+    R.ssRightKeepsWrong = ss.wrong === wBeforeRight;
+    R.ssRightLevels = ss.tilt === 0;
+    for(let i=0;i<60;i++) updateSS(1/60);
+    R.ssRightFlat = Math.abs(ss.angle) < 1.5;
+    ssNewQ();
+    ss.wrong = SS_WMAX - 1; ss.tilt = SS_WMAX - 1; ssSetLives();
+    ssAnswer(ss.q.cands.find(v=>v !== ss.q.ans));
+    R.ssFail = ss.state === 'over';
+    ssStart();
+    for(let i=0;i<SS_GOAL;i++){ if(!ss.q) ssNewQ(); ssAnswer(ss.q.ans); }
+    R.ssWin = ss.state === 'win';
+    R.ssStars5 = ss.stars === 5;
+    R.ssOk25 = ss.ok === 25;
+    ssStart(); ssNewQ();
+    $('ssPause').click();
+    R.ssPaused = ss.paused && SS.panel.classList.contains('on');
+    dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));
+    R.ssResumed = !ss.paused && !SS.panel.classList.contains('on');
+    closeSeesaw();
+    R.ssClosed = !SS.el.classList.contains('on');
+
+    // 10. 秋千 · 荡高投掷：踩点物理 / 投掷抛体 / 评级 / 最好成绩 / QTE / 暂停
+    openSwing();
+    R.swOpen = SW.el.classList.contains('on');
+    R.swReady = sw.state === 'ready' && SW.panel.classList.contains('on');
+    swStart();
+    // 踩点：顺着摆动方向、近谷点按 → 大增能；逆着按 → 只剩零头
+    sw.a = .3; sw.v = 2.2;
+    const E0g = .5*sw.v*sw.v;
+    swPump(1);
+    R.swPumpGood = +(.5*sw.v*sw.v - E0g).toFixed(3);
+    sw.a = .3; sw.v = -2.2;
+    const E0b = .5*sw.v*sw.v;
+    swPump(1);
+    R.swPumpBad = +(.5*sw.v*sw.v - E0b).toFixed(3);
+    R.swPumpRatio = R.swPumpGood > R.swPumpBad*2.5;
+    // 投掷：谷点（速度最大）投远于顶点（速度≈0）投——时机即技巧
+    sw.state = 'playing';
+    sw.a = 1.2; sw.v = 0; swThrowBear();          // 顶点投：几乎原地落下
+    R.swFlying = sw.state === 'flying';
+    let fn = 0;
+    while(sw.state === 'flying' && fn++ < 400) updateSW(1/60);
+    R.swDist2 = +sw.lastDist.toFixed(2);
+    let sn = 0;
+    while(sw.state === 'scored' && sn++ < 200) updateSW(1/60);   // 等展示结束归位
+    R.swReset = sw.state === 'playing' && sw.throws === 1;
+    sw.a = 0; sw.v = 2.0; swThrowBear();          // 谷点投：距离明显更远
+    fn = 0; while(sw.state === 'flying' && fn++ < 400) updateSW(1/60);
+    R.swDist1 = +sw.lastDist.toFixed(2);
+    R.swGrade1 = sw.lastGrade;
+    sn = 0; while(sw.state === 'scored' && sn++ < 200) updateSW(1/60);
+    R.swTiming = R.swDist1 > R.swDist2;
+    R.swBestMon = sw.best >= sw.lastGrade;
+    R.swGradeRange = sw.lastGrade >= 1 && sw.lastGrade <= 5;
+    R.swFiveReachable = R.swDist1 >= 5;        // 真实谷点投掷可达 5 星阈值
+    // 新评级映射：1m一星 2m二星 3m三星 4m四星 5m五星
+    R.swGradeMap = swGrade(0.5)===1 && swGrade(1)===1 && swGrade(2)===2 &&
+                   swGrade(3)===3 && swGrade(4)===4 && swGrade(5)===5 && swGrade(9)===5;
+    // 通关：构造一次 5 星投掷
+    sw.state = 'playing'; sw.best = 4;
+    sw.fly = {x:12.6, y:-1, vx:0, vy:0, rot:0, w:80, bounced:true};
+    swScore();
+    R.swGrade5 = sw.lastGrade === 5;
+    sn = 0; while(sw.state === 'scored' && sn++ < 200) updateSW(1/60);
+    R.swWin = sw.state === 'win' && sw.stars === 5;
+    // QTE：第一颗球立即出现，剩余陆陆续续冒出可共存；戳完 → 拯救；超时 → 坕落
+    swStart();
+    sw.a = 1.28; sw.v = 0; swRender(1/60);
+    swStartRescue();
+    R.swBallsN = sw.need >= 3 && sw.balls.length === 1;      // 开局只出现第一颗
+    R.swRescue = sw.state === 'rescue';
+    let rn = 0;
+    while(sw.state === 'rescue' && sw.spawn < sw.need && rn++ < 400) updateSW(1/60);
+    R.swSpawnAll = sw.spawn === sw.need && sw.balls.length === sw.need;   // 陆续生成可共存
+    [...sw.balls].forEach(b=>swPopBall(b));
+    R.swSaved = sw.state === 'playing';
+    swStartRescue();
+    const bn = sw.need;
+    fn = 0;
+    while(sw.state === 'rescue' && fn++ < 420) updateSW(1/60);    // 不戳球，5 秒耗尽
+    fn = 0;
+    while(sw.state === 'dropping' && fn++ < 120) updateSW(1/60);  // 坠落动画
+    R.swRescueFail = sw.state === 'over';
+    R.swBallsN2 = bn >= 3;
+    R.swDangerP = swDangerP(SW_DANGER + .01) > 0 &&
+                  swDangerP(SW_AMAX) > swDangerP(SW_DANGER + .1);
+    // 暂停：HUD 按钮 / ESC / 冻结
+    swStart();
+    sw.a = .5; sw.v = 1.4;
+    for(let i=0;i<30;i++) updateSW(1/60);
+    const swA = sw.a;
+    $('swPause').click();
+    R.swPaused = sw.paused && SW.panel.classList.contains('on');
+    tick(40, 1/60);
+    R.swFrozen = Math.abs(sw.a - swA) < 1e-6;
+    dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));
+    R.swResumed = !sw.paused && !SW.panel.classList.contains('on');
+    closeSwing();
+    R.swClosed = !SW.el.classList.contains('on');
+
+    // 11. 集星账本：三游戏各取最高 / 合计 15 / 徽标 / 满星蜂蜜对话 / 提示文案
+    bankReset();
+    R.bankStart = bankTotal()===0 && $('sbCount').textContent==='0';
+    bankSet('carousel',3); bankSet('carousel',2);          // 低分不回退
+    R.bankMaxOnly = bank.carousel===3 && bankTotal()===3;
+    bankSet('seesaw',5);
+    R.bankSum = bankTotal()===8 && $('sbCount').textContent==='8';
+    R.bankBarOn = $('sbBar').querySelectorAll('u.on').length===8;
+    R.bankDetail = $('sbDetail').querySelectorAll('.sbRow').length===3;
+    R.bankNotFull = !bankFull() && !$('starBank').classList.contains('full');
+    bankSet('carousel',5);                                  // 补满木马（3→5 取最高）
+    bankSet('swing',5);
+    R.bankFull = bankFull() && bankTotal()===15 && $('starBank').classList.contains('full');
+    R.bankBar15 = $('sbBar').querySelectorAll('u.on').length===15 && $('sbBar').children.length===15;
+    closeAll(); open('bearA');                              // 集满 → 蜂蜜奖励对话
+    R.honeyText = bTxt.textContent === HONEY_LINE;
+    R.honeyTag  = bTag.textContent === '小熊 · 惊喜';
+    R.honeyGift = bubble.classList.contains('hasGift');
+    bankReset(); closeAll(); open('bearA');                 // 未满星 → 普通对话
+    R.bearNormal = bTxt.textContent === DIALOG.bearA.lines[0] && !bubble.classList.contains('hasGift');
+    closeAll();
+    R.hintText = $('hint').textContent;
+    R.topHud = $('topHud').contains($('sndBtn')) && $('topHud').contains($('starBank'));
+
+    document.title = 'SELFTEST ' + JSON.stringify(R);
+    const d = document.createElement('pre');
+    d.id = 'selftestOut'; d.textContent = document.title;
+    document.body.appendChild(d);
+  })();
+}
+
+})();
+</script>
+</body>
+</html>
