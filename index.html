@@ -18,11 +18,15 @@
     display:flex;align-items:center;justify-content:center}
 
   #stage{position:relative;width:var(--spread-w);height:var(--spread-h);
-    flex:none;transform-origin:center center;
-    opacity:0;transform:scale(calc(var(--fit,.65) * .95));
+    flex:none;transform-origin:center center;touch-action:none;
+    opacity:0;
+    transform:translate(var(--panX,0px),var(--panY,0px)) scale(calc(var(--fit,.65) * .95));
     transition:opacity .85s ease,transform 1.15s cubic-bezier(.2,.9,.25,1);
     will-change:transform}
-  #stage.in{opacity:1;transform:scale(var(--fit,.65))}
+  #stage.in{opacity:1;
+    transform:translate(var(--panX,0px),var(--panY,0px)) scale(var(--fit,.65))}
+  #stage.panning{transition:none}          /* 拖动平移时跟手，不做缓动 */
+  html.instant *{transition:none!important;animation-duration:.001s!important}
   html.instant *{transition:none!important;animation-duration:.001s!important}
 
   #book{position:absolute;inset:0;border-radius:16px;overflow:hidden;
@@ -247,8 +251,28 @@
     transform:translateX(-50%);z-index:99;pointer-events:none;
     font-size:12.5px;color:#6d5436;letter-spacing:.16em;white-space:nowrap;opacity:.9}
   #rotateTip{position:fixed;left:50%;top:14px;transform:translateX(-50%);
-    font-size:12px;color:#8a7150;letter-spacing:.1em;opacity:0;transition:opacity .4s;
-    pointer-events:none;z-index:99}
+    font-size:12.5px;color:#7a5a34;letter-spacing:.08em;opacity:0;transition:opacity .4s;
+    pointer-events:none;z-index:99;padding:7px 14px;border-radius:999px;
+    background:rgba(255,250,238,.92);box-shadow:0 2px 10px rgba(120,88,48,.22);
+    white-space:nowrap}
+  #rotateTip.hot{pointer-events:auto;cursor:pointer}
+  @media (max-width:520px){
+    /* 窄屏：徽标与提示条同在顶部会重叠，把提示条下移到徽标下方 */
+    #rotateTip{top:auto;bottom:46px;font-size:11.5px}
+  }
+
+  /* ---------- 视图缩放控件：左上角竖排，手机放大阅读 / 横屏入口 ---------- */
+  #viewBar{position:fixed;left:12px;top:12px;z-index:150;
+    display:flex;flex-direction:column;align-items:stretch;gap:7px;
+    background:rgba(255,250,238,.9);border-radius:16px;padding:8px;
+    box-shadow:0 0 0 2px #fffdf6,0 0 0 3.5px rgba(214,182,134,.55),0 8px 18px rgba(110,80,44,.24)}
+  #viewBar button{border:none;cursor:pointer;font-family:inherit;
+    width:40px;height:34px;border-radius:10px;font-size:15px;font-weight:700;color:#6b4a29;
+    background:linear-gradient(180deg,#fffaef,#f0e2c8);
+    box-shadow:0 2.5px 0 #d3b288,0 5px 10px rgba(120,88,48,.2),inset 0 1px 0 #fffdf7}
+  #viewBar button:active{transform:translateY(2px);box-shadow:0 1px 0 #d3b288}
+  #viewBar #vRot{width:auto;padding:0 9px;font-size:12px;font-weight:600;white-space:nowrap}
+  #vPct{font-size:11.5px;font-weight:700;color:#a4885c;text-align:center;line-height:1}
 
   /* ============ 旋转木马 · 骑乘游戏 ============ */
   #game{position:fixed;inset:0;z-index:200;display:none;overflow:hidden;
@@ -294,14 +318,15 @@
   .gObsTag b{font-size:13px;font-weight:700;color:#a8412a}
   .gObsTag span{font-size:11px;color:#8a7150}
   /* 障碍：小巧鲜明的剪纸片。锁在固定的(列,层)网格点，只做轻微由远及近缩放，
-     绝不放大成一整块，也不叠任何分层背景 */
-  .gObs{position:absolute;width:11%;aspect-ratio:1;transform-origin:50% 50%;
+     绝不放大成一整块，也不叠任何分层背景。
+     尺寸由 JS 注入 --obsPx（锚定视口短边）：横竖屏点心大小/层间距比例恒定 */
+  .gObs{position:absolute;width:var(--obsPx,11%);aspect-ratio:1;transform-origin:50% 50%;
     will-change:transform,left,top;pointer-events:none}
   .gObs .art{position:absolute;left:50%;top:50%;width:100%;height:100%;
     transform:translate(-50%,-50%);
     filter:drop-shadow(0 7px 9px rgba(90,66,40,.34))}
   .gObs.donut .art{transform:translate(-50%,-50%) scale(.9)}
-  .gObs.stack{width:8.6%}        /* 两格各一个独立小点心，略缩小让层与层清晰分开 */
+  .gObs.stack{width:calc(var(--obsPx, 11%) * .78)}   /* 两格各一个独立小点心，略缩小让层与层清晰分开 */
   .gObs svg{display:block;width:100%;height:100%}
 
   /* 马头的当前坐标贴纸：直接写明我在哪一格 */
@@ -493,7 +518,7 @@
     .gObsTag span{font-size:10px}
     #gMeter{left:10px;padding:9px 7px;gap:7px}
     #gMeter i{width:15px;height:15px}
-    #gLaneBand{width:130%;height:18%}
+    #gLaneBand{width:130%}      /* 光带高度由 JS 随视口注入，不按方向覆盖 */
     .sndBtn{font-size:12px;padding:6px 11px}
     #topHud{top:10px;right:10px}
     #starBank{min-width:158px;padding:8px 11px 9px}
@@ -569,7 +594,7 @@
 
   /* ---------- 当前高度层的「选中」奶白光带：与左中右跑道白阴影对称。
      只有当前层这一条：奶白柔光 + 上下白色虚线（呼应跑道虚线），不做成三层背景 ---------- */
-  #gLaneBand{position:absolute;left:50%;top:53%;width:min(74%,860px);height:15%;
+  #gLaneBand{position:absolute;left:50%;top:53%;width:min(74%,860px);height:var(--bandH,15%);
     transform:translate(-50%,-50%);border-radius:20px;pointer-events:none;
     background:radial-gradient(55% 62% at 50% 50%,
       rgba(255,252,240,.8) 0%,rgba(255,252,240,.5) 46%,rgba(255,252,240,0) 80%);
@@ -954,8 +979,15 @@
     <span>音乐</span>
   </button>
 </div>
+<div id="viewBar" role="group" aria-label="画面缩放与横屏">
+  <button id="vMinus" aria-label="缩小画面" title="缩小">－</button>
+  <span id="vPct">100%</span>
+  <button id="vPlus" aria-label="放大画面" title="放大（字更大）">＋</button>
+  <button id="vReset" aria-label="复位视图" title="复位">⟲</button>
+  <button id="vRot" aria-label="横屏模式" title="尝试横屏 / 提示旋转手机">⟳ 横屏</button>
+</div>
 <div id="hint">快来和小熊、摩天轮、跷跷板以及秋千互动吧！</div>
-<div id="rotateTip">横过来看，立体感更好</div>
+<div id="rotateTip">画面有点小 · 点我放大，或把手机横过来</div>
 
 <!-- ============ 旋转木马骑乘游戏 ============ -->
 <div id="game" aria-hidden="true">
@@ -1253,18 +1285,141 @@ addEventListener('keydown',    ()=>Snd.ensure(), true);
 
 const SPREAD_W = 1480, SPREAD_H = 900;
 
+/* ---------- 视图缩放：手机「放大 / 还原」+ 拖动平移 ----------
+   书页是 1480×900 横版，竖屏手机按宽缩放只剩 ~0.24，字看不清；
+   提供用户可控的缩放（1×~2.5×，记住偏好），放大后可拖动平移查看。 */
+const VIEW_DEMO = /(selftest|shot|game|ss|sw|bank|honey)/.test(location.hash);
+const view = { zoom:1, panX:0, panY:0 };
+let baseFit = .65, curFit = .65;
+if(!VIEW_DEMO){
+  try{
+    const z = parseFloat(localStorage.getItem('bookViewZoom'));
+    if(z >= 1 && z <= 3) view.zoom = z;
+  }catch(e){}
+}
+function clampPan(){
+  const mx = Math.max(0, SPREAD_W*curFit/2 - innerWidth/2  + 18);
+  const my = Math.max(0, SPREAD_H*curFit/2 - innerHeight/2 + 18);
+  view.panX = Math.max(-mx, Math.min(mx, view.panX));
+  view.panY = Math.max(-my, Math.min(my, view.panY));
+}
+function applyPan(){
+  stage.style.setProperty('--panX', view.panX.toFixed(1) + 'px');
+  stage.style.setProperty('--panY', view.panY.toFixed(1) + 'px');
+}
+function saveZoom(){
+  if(!VIEW_DEMO){ try{ localStorage.setItem('bookViewZoom', String(view.zoom)); }catch(e){} }
+}
+function applyView(){
+  clampPan(); applyPan(); fitStage();
+  const pct = $('vPct');
+  if(pct) pct.textContent = Math.round(view.zoom*100) + '%';
+  saveZoom();
+}
+
+/* ---------- 旋转木马垂直布局：点心大小与三层间距锚定同一基准 ----------
+   旧版点心用宽度 11%、层距用高度 13% —— 竖屏间距过大、横屏点心叠层。
+   触屏/窄屏改锚定视口短边（同一台手机横竖屏短边不变 → 布局像素完全一致）；
+   桌面沿用原参数（点心 11% 宽、层距 13% 高），观感零变化。 */
+const GLAY = { obs:80, step:104, midY:0, lift:24, tagOff:72 };
+function layoutGame(){
+  const vw = innerWidth, vh = innerHeight;
+  const touch = matchMedia('(pointer:coarse)').matches || vw < 700;
+  let obs, step, lift, tagOff;
+  if(touch){
+    obs  = Math.max(44, Math.min(110, Math.min(vw,vh) * .115));
+    step = obs * 1.25;                    // 间距略大于点心：紧凑但绝不叠层
+    lift = step * .23; tagOff = obs * .7;
+  }else{
+    obs  = vw * .11;                      // 桌面：与原 11% / 13% 完全等值
+    step = vh * .13;
+    lift = vh * .03; tagOff = vh * .09;
+  }
+  GLAY.obs = obs; GLAY.step = step; GLAY.midY = vh * .53;
+  GLAY.lift = lift; GLAY.tagOff = tagOff;
+  $('game').style.setProperty('--obsPx', obs.toFixed(1) + 'px');
+  $('game').style.setProperty('--bandH', (step * 1.1).toFixed(1) + 'px');
+}
+function laneY(lane){ return GLAY.midY + (1 - lane) * GLAY.step; }   /* 2上 · 1中 · 0下 */
+
 /* ---------- 自适应 ---------- */
 function fitStage(){
   const vw = innerWidth, vh = innerHeight;
   const padX = vw < 760 ? 14 : 44, padY = vw < 760 ? 14 : 44;
-  const s = Math.min((vw - padX*2)/SPREAD_W, (vh - padY*2)/SPREAD_H);
-  stage.style.setProperty('--fit', s.toFixed(4));
-  $('rotateTip').style.opacity =
-    (vh > vw*1.1 && vw < 900 && s < .5) ? .8 : 0;
+  baseFit = Math.min((vw - padX*2)/SPREAD_W, (vh - padY*2)/SPREAD_H);
+  curFit  = baseFit * view.zoom;
+  stage.style.setProperty('--fit', curFit.toFixed(4));
+  layoutGame();
+  clampPan(); applyPan();
+  const smallPortrait = vh > vw*1.1 && vw < 900 && baseFit < .5;
+  const rt = $('rotateTip');
+  rt.style.opacity = smallPortrait ? .8 : 0;
+  rt.classList.toggle('hot', smallPortrait);   /* 可见时可点击 → 一键放大 */
 }
 addEventListener('resize', fitStage);
 fitStage();
 requestAnimationFrame(()=>stage.classList.add('in'));
+
+/* ---------- 缩放 / 平移 / 横屏交互 ---------- */
+$('vPlus').addEventListener('click', ()=>{
+  view.zoom = Math.min(2.5, +(view.zoom + .25).toFixed(2));
+  sfx('tap'); applyView();
+});
+$('vMinus').addEventListener('click', ()=>{
+  view.zoom = Math.max(1, +(view.zoom - .25).toFixed(2));
+  if(view.zoom <= 1){ view.panX = 0; view.panY = 0; }
+  sfx('tap'); applyView();
+});
+$('vReset').addEventListener('click', ()=>{
+  view.zoom = 1; view.panX = 0; view.panY = 0;
+  sfx('tap'); applyView();
+});
+/* 横屏：能锁就锁（需全屏，部分浏览器支持），不支持则提示旋转手机 */
+$('vRot').addEventListener('click', ()=>{
+  sfx('tap');
+  const tip = $('rotateTip');
+  const showTip = txt => {
+    tip.textContent = txt;
+    tip.style.opacity = .92;
+    clearTimeout(tip._t);
+    tip._t = setTimeout(()=>{ tip.style.opacity = 0; fitStage(); }, 3200);
+  };
+  const lockIt = async ()=>{
+    try{
+      if(document.documentElement.requestFullscreen)
+        await document.documentElement.requestFullscreen();
+      if(screen.orientation && screen.orientation.lock)
+        await screen.orientation.lock('landscape');
+      showTip('已切换横屏 ✓');
+    }catch(e){
+      showTip('这台浏览器锁不了方向 · 请把手机横过来，画面会自动变大');
+    }
+  };
+  lockIt();
+});
+/* 竖屏提示条：点一下直接放大一档 */
+$('rotateTip').addEventListener('click', ()=>{
+  if(view.zoom <= 1){ view.zoom = 1.75; } else { view.zoom = 1; view.panX = 0; view.panY = 0; }
+  sfx('tap'); applyView();
+  $('rotateTip').style.opacity = 0;
+});
+/* 放大后拖动平移：只响应空白处，不干扰小熊/设施/秋千的点击与拖拽 */
+let panDrag = null;
+stage.addEventListener('pointerdown', e=>{
+  if(view.zoom <= 1.001) return;
+  if(e.target.closest('.pickable,.bear,#rideBtn,#bubble,#topHud,#viewBar,button')) return;
+  panDrag = { x:e.clientX, y:e.clientY, px:view.panX, py:view.panY };
+  stage.classList.add('panning');
+});
+addEventListener('pointermove', e=>{
+  if(!panDrag) return;
+  view.panX = panDrag.px + (e.clientX - panDrag.x);
+  view.panY = panDrag.py + (e.clientY - panDrag.y);
+  clampPan(); applyPan();
+});
+const endPanDrag = ()=>{ if(panDrag){ panDrag = null; stage.classList.remove('panning'); } };
+addEventListener('pointerup', endPanDrag);
+addEventListener('pointercancel', endPanDrag);
 
 /* ---------- 视差 ---------- */
 const layers = [...document.querySelectorAll('.plx')].map(el=>({
@@ -1738,7 +1893,6 @@ const pieceDesc = lanes => [2,1,0].filter(l=>lanes.includes(l))
                                  .map(l=>PIECENAME[LANE_TYPE[l]]).join('＋');
 /* 网格化的固定坐标：三列 X、三层 Y（% of 场景），障碍锁死在格点，绝不乱漂 */
 const COLX  = [33, 50, 67];
-const LANEY = { 2:40, 1:53, 0:66 };
 const COLW = 17;                                       // 镜头跟随的列间距（%）
 
 const G = {
@@ -1866,17 +2020,17 @@ function posObs(o){
   else if(z > 1.02) op = Math.max(0, (1.16-z)/.14);  // 掠过淡出
   /* 一片 = 一个被挡层格里的独立小点心：等大、清晰，互不叠成一整块 */
   for(const p of o.pieces){
-    const cy = LANEY[p.lane] - (1-e)*3;
+    const cy = laneY(p.lane) - (1-e)*GLAY.lift;
     p.el.style.left = cx.toFixed(2)+'%';
-    p.el.style.top  = cy.toFixed(2)+'%';
+    p.el.style.top  = cy.toFixed(1)+'px';
     p.el.style.transform = `translate(-50%,-50%) scale(${s.toFixed(3)})`;
     p.el.style.zIndex = 5 + Math.round(z*100);
     p.el.style.opacity = op.toFixed(2);
   }
   if(o.tag){                    /* 坐标牌挂在最上层片的上方，写明「占哪几层」 */
-    const topY = LANEY[Math.max(...o.lanes)] - (1-e)*3;
+    const topY = laneY(Math.max(...o.lanes)) - (1-e)*GLAY.lift;
     o.tag.style.left = cx.toFixed(2)+'%';
-    o.tag.style.top  = (topY - 9).toFixed(2)+'%';
+    o.tag.style.top  = (topY - GLAY.tagOff).toFixed(1)+'px';
     o.tag.style.zIndex = 120;
     o.tag.style.opacity = (z > .12 && z < 1.04)
       ? Math.min(1, (z-.12)/.1).toFixed(2) : '0';
@@ -1948,7 +2102,7 @@ function updateGame(dt){
   G.cam.style.transform = `translateX(${((1-game.cx)*COLW).toFixed(2)}%)`;
   const lift = game.ly - 1;                       /* 上层 >0：马头上移、投影变小淡 */
   const tilt = (game.col - game.cx)*6;            /* 换列时轻微侧倾，位移感交给镜头 */
-  const vy = innerHeight*0.085;
+  const vy = GLAY.step * .65;                     /* 随层间距缩放，横竖屏幅度一致 */
   G.horse.style.left = '50%';
   G.me.style.left = '50%';
   G.shadow.style.left = '50%';
@@ -1958,7 +2112,7 @@ function updateGame(dt){
   G.shadow.style.opacity = (.5 - lift*.16).toFixed(2);
   G.shadow.style.transform = `translateX(-50%) scale(${(1 - lift*.3).toFixed(3)})`;
   /* 当前层的「选中」奶白光带：与左中右跑道白阴影对称，随升降平滑上下 */
-  G.band.style.top = (66 - 13*game.ly).toFixed(2) + '%';
+  G.band.style.top = laneY(game.ly).toFixed(1) + 'px';
   if(game.state !== 'playing') return;
 
   let remain = dt*(game.fast ? 20 : 1), guard = 0;
@@ -2049,6 +2203,7 @@ function win(){ sfx('win'); setStars(5); updateHud(); showPanel('win'); }
 function openGame(){
   sfx('tap');
   game.active = true;
+  layoutGame();                          // 进入游戏时按当前视口重算三层布局
   hideBubble(); clearPicks();
   G.el.classList.add('on');
   G.el.setAttribute('aria-hidden','false');
@@ -2993,6 +3148,12 @@ if(location.hash.indexOf('shot') >= 0){
     bank.carousel=5; bank.seesaw=5; bank.swing=5; renderBank();
     open('bearA');
   }
+  if(h.indexOf('zoomed') >= 0){    /* 主页放大阅读态：字变大 + 平移到左侧 */
+    view.zoom = 1.9;
+    applyView();
+    view.panX = (SPREAD_W*curFit - innerWidth)/2*.55;
+    applyPan();
+  }
 }
 
 /* 游戏演示 / 无头截图：#game 直接开局、#gametest 加速、#gamefull 通关、#gamewin/#gamelose 结算 */
@@ -3379,6 +3540,29 @@ if(location.hash.indexOf('selftest') >= 0){
     closeAll();
     R.hintText = $('hint').textContent;
     R.topHud = $('topHud').contains($('sndBtn')) && $('topHud').contains($('starBank'));
+
+    // 12. 手机适配：统一基准的三层布局 + 视图缩放控件
+    R.gLay = !!GLAY && GLAY.obs > 0 &&
+             laneY(2) < laneY(1) && laneY(1) < laneY(0) &&
+             GLAY.step >= GLAY.obs * .7 && GLAY.midY > 0;
+    R.gLayTouch = (()=>{        /* 模拟手机短边基准：间距必须 > 点心，绝不叠层 */
+      const s0 = GLAY.obs, t0 = GLAY.step, m0 = GLAY.midY;
+      GLAY.obs = 45; GLAY.step = 45 * 1.25; GLAY.midY = 400;
+      const ok = laneY(2) < laneY(1) && laneY(1) < laneY(0) &&
+                 Math.abs(laneY(0) - laneY(2) - GLAY.step*2) < 1e-9 &&
+                 GLAY.step > GLAY.obs;
+      GLAY.obs = s0; GLAY.step = t0; GLAY.midY = m0;
+      return ok;
+    })();
+    R.gObsPx = ($('game').style.getPropertyValue('--obsPx') || '').length > 2;
+    const f0 = curFit;
+    $('vPlus').click();
+    R.viewZoomUp  = curFit > f0 && view.zoom > 1;
+    $('vReset').click();
+    R.viewReset   = view.zoom === 1 && Math.abs(curFit - f0) < 1e-9 &&
+                    view.panX === 0 && view.panY === 0;
+    R.viewBar     = !!$('viewBar') && !!$('vRot') &&
+                    parseFloat(stage.style.getPropertyValue('--fit')) > 0;
 
     document.title = 'SELFTEST ' + JSON.stringify(R);
     const d = document.createElement('pre');
