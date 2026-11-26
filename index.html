@@ -17,16 +17,16 @@
     font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
     display:flex;align-items:center;justify-content:center}
 
+  /* 缩放/平移走瞬时 transform：绝不给整块 1480×900 大画布做逐帧 scale 过渡。
+     否则每次放大都要把全部 webp/滤镜按新分辨率重采样 1 秒多 → 卡顿 + 图标闪烁。
+     入场只做一次轻量 opacity 淡入；不常驻 will-change 超大合成层。 */
   #stage{position:relative;width:var(--spread-w);height:var(--spread-h);
     flex:none;transform-origin:center center;touch-action:none;
     opacity:0;
-    transform:translate(var(--panX,0px),var(--panY,0px)) scale(calc(var(--fit,.65) * .95));
-    transition:opacity .85s ease,transform 1.15s cubic-bezier(.2,.9,.25,1);
-    will-change:transform}
-  #stage.in{opacity:1;
-    transform:translate(var(--panX,0px),var(--panY,0px)) scale(var(--fit,.65))}
-  #stage.panning{transition:none}          /* 拖动平移时跟手，不做缓动 */
-  html.instant *{transition:none!important;animation-duration:.001s!important}
+    transform:translate(var(--panX,0px),var(--panY,0px)) scale(var(--fit,.65));
+    transition:opacity .6s ease}
+  #stage.in{opacity:1}
+  #stage.panning{transition:none}
   html.instant *{transition:none!important;animation-duration:.001s!important}
 
   #book{position:absolute;inset:0;border-radius:16px;overflow:hidden;
@@ -308,7 +308,7 @@
   #gShadow{position:absolute;left:50%;bottom:4.5%;width:21%;aspect-ratio:2.7/1;
     transform:translateX(-50%);border-radius:50%;pointer-events:none;z-index:9;
     background:radial-gradient(50% 50% at 50% 50%,rgba(92,68,36,.55),rgba(92,68,36,0) 72%);
-    will-change:left,opacity,transform}
+    will-change:opacity,transform}
 
   /* 障碍的固定大小坐标牌：不随透视缩放，始终能读出「哪一列 · 什么点心」 */
   .gObsTag{position:absolute;z-index:8;pointer-events:none;transform:translate(-50%,-50%);
@@ -317,16 +317,21 @@
     box-shadow:0 0 0 2px #fffdf6,0 0 0 3.5px rgba(214,182,134,.6),0 6px 12px rgba(110,80,44,.25)}
   .gObsTag b{font-size:13px;font-weight:700;color:#a8412a}
   .gObsTag span{font-size:11px;color:#8a7150}
-  /* 障碍：小巧鲜明的剪纸片。锁在固定的(列,层)网格点，只做轻微由远及近缩放，
-     绝不放大成一整块，也不叠任何分层背景。
-     尺寸由 JS 注入 --obsPx（锚定视口短边）：横竖屏点心大小/层间距比例恒定 */
+  /* 窄屏竖屏：坐标牌去描述文字并限宽，避免溢出屏幕右缘 */
+  @media (max-width:700px){
+    .gObsTag{max-width:46vw;overflow:hidden}
+    .gObsTag span{display:none}
+    .gObsTag b{font-size:11.5px}
+  }
+  /* 障碍：小巧鲜明的剪纸片。left/top 只在生成时设一次，运行期只用 transform/opacity
+     更新（消除每帧强制重排）。去掉每片 drop-shadow 滤镜：transform 每帧变化时不再重算滤镜，
+     立体感由 SVG 自带白色描边负责。尺寸由 JS 注入 --obsPx。 */
   .gObs{position:absolute;width:var(--obsPx,11%);aspect-ratio:1;transform-origin:50% 50%;
-    will-change:transform,left,top;pointer-events:none}
+    pointer-events:none;top:0;left:0}
   .gObs .art{position:absolute;left:50%;top:50%;width:100%;height:100%;
-    transform:translate(-50%,-50%);
-    filter:drop-shadow(0 7px 9px rgba(90,66,40,.34))}
+    transform:translate(-50%,-50%)}
   .gObs.donut .art{transform:translate(-50%,-50%) scale(.9)}
-  .gObs.stack{width:calc(var(--obsPx, 11%) * .78)}   /* 两格各一个独立小点心，略缩小让层与层清晰分开 */
+  .gObs.stack{width:calc(var(--obsPx, 11%) * .74)}   /* 两格各一个独立小点心，略缩小让层与层清晰分开 */
   .gObs svg{display:block;width:100%;height:100%}
 
   /* 马头的当前坐标贴纸：直接写明我在哪一格 */
@@ -599,8 +604,7 @@
     background:radial-gradient(55% 62% at 50% 50%,
       rgba(255,252,240,.8) 0%,rgba(255,252,240,.5) 46%,rgba(255,252,240,0) 80%);
     border-top:2.5px dashed rgba(255,255,255,.9);
-    border-bottom:2.5px dashed rgba(255,255,255,.9);
-    will-change:top}
+    border-bottom:2.5px dashed rgba(255,255,255,.9);will-change:transform}
 
   /* ============ 跷跷板 · 快速配平游戏 ============ */
   #ss{position:fixed;inset:0;z-index:210;display:none;overflow:hidden;
@@ -1317,28 +1321,47 @@ function applyView(){
   saveZoom();
 }
 
-/* ---------- 旋转木马垂直布局：点心大小与三层间距锚定同一基准 ----------
-   旧版点心用宽度 11%、层距用高度 13% —— 竖屏间距过大、横屏点心叠层。
-   触屏/窄屏改锚定视口短边（同一台手机横竖屏短边不变 → 布局像素完全一致）；
-   桌面沿用原参数（点心 11% 宽、层距 13% 高），观感零变化。 */
-const GLAY = { obs:80, step:104, midY:0, lift:24, tagOff:72 };
+/* ---------- 旋转木马三层布局：桌面 / 竖屏 / 横屏 三套独立参数 ----------
+   竖屏不再复用横屏缩放贴图：单独设计一套「三层靠拢」的紧凑布局 —— 点心更大、
+   层间距更小，甜甜圈/蛋糕/面包三层同时出现时彼此贴近但绝不重叠；
+   横屏保持宽松间距避免拥挤；桌面沿用原 11%/13%。纯函数便于自检直接验证两套比例。 */
+const GLAY = { obs:80, step:104, midY:0, lift:24, tagOff:72, mode:'desktop' };
+/* 仅用于无头截图/演示：headless 默认 pointer:fine，横屏视口不会被判为触屏。
+   hash 带 forceland 时强制走「横屏触屏」分支，带 forceport 时强制走竖屏分支。
+   真实手机靠 pointer:coarse + 宽高比自动判定，不受此开关影响。 */
+const FORCE_LAND = /forceland/.test(location.hash);
+const FORCE_PORT = /forceport/.test(location.hash);
+function gameLayoutParams(vw, vh, coarse, portraitOverride){
+  const portrait = portraitOverride === undefined ? vh > vw * 1.12 : portraitOverride;
+  if(!coarse){                                   // 桌面
+    return { mode:'desktop', obs:vw*.11, step:vh*.13, midY:vh*.53, lift:vh*.03, tagOff:vh*.09 };
+  }
+  if(portrait){                                  // 竖屏专属：点心按宽度做大、三层紧贴靠拢
+    const obs = Math.max(52, Math.min(84, vw*.155));
+    const step = obs*1.06;                       // 层间距紧贴点心：三层明显靠近，仍不重叠
+    return { mode:'portrait', obs, step, midY:vh*.44, lift:step*.16, tagOff:obs*.6 };
+  }
+  const obs = Math.max(44, Math.min(100, vh*.17)); // 横屏：受高度限制，点心小些、间距宽松
+  const step = obs*1.3;                          // 拉开层距，避免图标拥挤混乱
+  return { mode:'landscape', obs, step, midY:vh*.5, lift:step*.22, tagOff:obs*.7 };
+}
 function layoutGame(){
   const vw = innerWidth, vh = innerHeight;
-  const touch = matchMedia('(pointer:coarse)').matches || vw < 700;
-  let obs, step, lift, tagOff;
-  if(touch){
-    obs  = Math.max(44, Math.min(110, Math.min(vw,vh) * .115));
-    step = obs * 1.25;                    // 间距略大于点心：紧凑但绝不叠层
-    lift = step * .23; tagOff = obs * .7;
-  }else{
-    obs  = vw * .11;                      // 桌面：与原 11% / 13% 完全等值
-    step = vh * .13;
-    lift = vh * .03; tagOff = vh * .09;
-  }
-  GLAY.obs = obs; GLAY.step = step; GLAY.midY = vh * .53;
-  GLAY.lift = lift; GLAY.tagOff = tagOff;
-  $('game').style.setProperty('--obsPx', obs.toFixed(1) + 'px');
-  $('game').style.setProperty('--bandH', (step * 1.1).toFixed(1) + 'px');
+  const coarse = FORCE_LAND || FORCE_PORT || matchMedia('(pointer:coarse)').matches || vw < 700;
+  const P = gameLayoutParams(vw, vh, coarse, FORCE_LAND ? false : (FORCE_PORT ? true : undefined));
+  GLAY.mode = P.mode; GLAY.obs = P.obs; GLAY.step = P.step; GLAY.midY = P.midY;
+  GLAY.lift = P.lift; GLAY.tagOff = P.tagOff;
+  const gel = $('game');
+  gel.style.setProperty('--obsPx', P.obs.toFixed(1) + 'px');
+  gel.style.setProperty('--bandH', (P.step * 1.12).toFixed(1) + 'px');
+  $('gLaneBand').style.top = P.midY.toFixed(1) + 'px';   // 光带基准一次性写，运行期只动 transform
+  /* 方向/尺寸变化后同步已存在障碍的 top 基准（try 兜住初始化期的暂时性未定义） */
+  try{
+    for(const o of game.obs){
+      for(const p of o.pieces) p.el.style.top = laneY(p.lane).toFixed(1) + 'px';
+      if(o.tag) o.tag.style.top = (laneY(Math.max(...o.lanes)) - P.tagOff).toFixed(1) + 'px';
+    }
+  }catch(e){}
 }
 function laneY(lane){ return GLAY.midY + (1 - lane) * GLAY.step; }   /* 2上 · 1中 · 0下 */
 
@@ -1374,28 +1397,16 @@ $('vReset').addEventListener('click', ()=>{
   view.zoom = 1; view.panX = 0; view.panY = 0;
   sfx('tap'); applyView();
 });
-/* 横屏：能锁就锁（需全屏，部分浏览器支持），不支持则提示旋转手机 */
+/* 横屏引导：手机网页无法强制旋转屏幕，且调用全屏/锁方向 API 会触发整页重排
+   （合成层/filter 全部重光栅化 → 图标闪烁）。这里只做零副作用的文字提示，
+   由用户手动转屏；转屏后 resize 事件会自动重排适配。 */
 $('vRot').addEventListener('click', ()=>{
   sfx('tap');
   const tip = $('rotateTip');
-  const showTip = txt => {
-    tip.textContent = txt;
-    tip.style.opacity = .92;
-    clearTimeout(tip._t);
-    tip._t = setTimeout(()=>{ tip.style.opacity = 0; fitStage(); }, 3200);
-  };
-  const lockIt = async ()=>{
-    try{
-      if(document.documentElement.requestFullscreen)
-        await document.documentElement.requestFullscreen();
-      if(screen.orientation && screen.orientation.lock)
-        await screen.orientation.lock('landscape');
-      showTip('已切换横屏 ✓');
-    }catch(e){
-      showTip('这台浏览器锁不了方向 · 请把手机横过来，画面会自动变大');
-    }
-  };
-  lockIt();
+  tip.textContent = '请关闭「方向锁定」，把手机横过来 · 画面会自动适配';
+  tip.style.opacity = .95;
+  clearTimeout(tip._t);
+  tip._t = setTimeout(()=>{ tip.style.opacity = 0; }, 3600);
 });
 /* 竖屏提示条：点一下直接放大一档 */
 $('rotateTip').addEventListener('click', ()=>{
@@ -2014,37 +2025,37 @@ function posObs(o){
   const z = Math.max(0, o.z);
   const e = Math.min(1, z);                       // 逼近进度，仅用于轻微缩放/淡入
   const s = .62 + e*.4;                           // 0.62→1.02，绝不放大成一整块
-  const cx = COLX[o.col];                         // 列固定
   let op = 1;
   if(z < .06) op = z/.06;                         // 远处淡入
   else if(z > 1.02) op = Math.max(0, (1.16-z)/.14);  // 掠过淡出
-  /* 一片 = 一个被挡层格里的独立小点心：等大、清晰，互不叠成一整块 */
+  /* 运行期只改 transform / opacity / zIndex —— 全是合成层属性，不碰 left/top（零强制重排）。
+     left/top 已在 makeObs 生成时按「列/层」固定，逼近时的轻微上浮并入 translateY。 */
+  const liftPx = (-(1-e)*GLAY.lift).toFixed(1);
+  const tf = `translate(-50%,-50%) translateY(${liftPx}px) scale(${s.toFixed(3)})`;
+  const zi = 5 + Math.round(z*100);
   for(const p of o.pieces){
-    const cy = laneY(p.lane) - (1-e)*GLAY.lift;
-    p.el.style.left = cx.toFixed(2)+'%';
-    p.el.style.top  = cy.toFixed(1)+'px';
-    p.el.style.transform = `translate(-50%,-50%) scale(${s.toFixed(3)})`;
-    p.el.style.zIndex = 5 + Math.round(z*100);
+    p.el.style.transform = tf;
+    p.el.style.zIndex = zi;
     p.el.style.opacity = op.toFixed(2);
   }
-  if(o.tag){                    /* 坐标牌挂在最上层片的上方，写明「占哪几层」 */
-    const topY = laneY(Math.max(...o.lanes)) - (1-e)*GLAY.lift;
-    o.tag.style.left = cx.toFixed(2)+'%';
-    o.tag.style.top  = (topY - GLAY.tagOff).toFixed(1)+'px';
-    o.tag.style.zIndex = 120;
+  if(o.tag){                    /* 坐标牌：位置固定，运行期只改淡入淡出 */
     o.tag.style.opacity = (z > .12 && z < 1.04)
       ? Math.min(1, (z-.12)/.1).toFixed(2) : '0';
   }
 }
 function makeObs(col, type){
   const lanes = BLOCK[type].slice().sort((a,b)=>a-b);   // 被挡的层（升序：下→上）
+  const cx = COLX[col].toFixed(2)+'%';
   /* 一片 = 一格：按该层固定的点心摆一个独立小剪纸；中间层自然就是甜甜圈，
-     上层蛋糕、下层面包各自只占自己那一格，绝不叠成一整块蛋糕山/面包塔 */
+     上层蛋糕、下层面包各自只占自己那一格，绝不叠成一整块蛋糕山/面包塔。
+     left/top 在生成时按「列/层」一次写定（列与层终身不变），运行期不再改。 */
   const pieces = lanes.map((lane)=>{
     const pt = LANE_TYPE[lane];
     const el = document.createElement('div');
     el.className = 'gObs ' + pt + (lanes.length > 1 ? ' stack' : '');
     el.innerHTML = `<div class="art">${ART[pt]}</div>`;   // 纯剪纸，无分层背景
+    el.style.left = cx;
+    el.style.top  = laneY(lane).toFixed(1)+'px';
     G.world.appendChild(el);
     return { el, lane, pt };
   });
@@ -2052,6 +2063,9 @@ function makeObs(col, type){
   tag.className = 'gObsTag';
   tag.innerHTML = `<b>${COLNAME[col]}列 · ${layerDesc(lanes)}</b>` +
     `<span>${pieceDesc(lanes)} · 挡${lanes.length}层</span>`;
+  tag.style.left = cx;
+  tag.style.top  = (laneY(Math.max(...lanes)) - GLAY.tagOff).toFixed(1)+'px';
+  tag.style.zIndex = '120';
   G.world.appendChild(tag);
   return { col, type, lanes, z:0, pieces, tag, passed:false, wasDanger:false };
 }
@@ -2103,16 +2117,13 @@ function updateGame(dt){
   const lift = game.ly - 1;                       /* 上层 >0：马头上移、投影变小淡 */
   const tilt = (game.col - game.cx)*6;            /* 换列时轻微侧倾，位移感交给镜头 */
   const vy = GLAY.step * .65;                     /* 随层间距缩放，横竖屏幅度一致 */
-  G.horse.style.left = '50%';
-  G.me.style.left = '50%';
-  G.shadow.style.left = '50%';
   G.horse.style.transform =
     `translateX(-50%) translateY(${(-bob*10 - lift*vy).toFixed(1)}px) ` +
     `rotate(${(tilt + sway*1.6).toFixed(2)}deg) scale(${(1 - lift*.05).toFixed(3)})`;
   G.shadow.style.opacity = (.5 - lift*.16).toFixed(2);
   G.shadow.style.transform = `translateX(-50%) scale(${(1 - lift*.3).toFixed(3)})`;
-  /* 当前层的「选中」奶白光带：与左中右跑道白阴影对称，随升降平滑上下 */
-  G.band.style.top = laneY(game.ly).toFixed(1) + 'px';
+  /* 当前层的「选中」奶白光带：随升降平滑上下，只改 transform（不触发重排） */
+  G.band.style.transform = `translate(-50%,-50%) translateY(${((1-game.ly)*GLAY.step).toFixed(1)}px)`;
   if(game.state !== 'playing') return;
 
   let remain = dt*(game.fast ? 20 : 1), guard = 0;
@@ -3541,20 +3552,48 @@ if(location.hash.indexOf('selftest') >= 0){
     R.hintText = $('hint').textContent;
     R.topHud = $('topHud').contains($('sndBtn')) && $('topHud').contains($('starBank'));
 
-    // 12. 手机适配：统一基准的三层布局 + 视图缩放控件
+    // 12. 三套独立布局 + 视图缩放控件 + 零重排渲染
     R.gLay = !!GLAY && GLAY.obs > 0 &&
              laneY(2) < laneY(1) && laneY(1) < laneY(0) &&
              GLAY.step >= GLAY.obs * .7 && GLAY.midY > 0;
-    R.gLayTouch = (()=>{        /* 模拟手机短边基准：间距必须 > 点心，绝不叠层 */
+    R.gModes = (()=>{          /* 桌面/竖屏/横屏三套；竖屏层距更紧凑、不叠层、不超列距 */
+      const d = gameLayoutParams(1280, 800, false);
+      const p = gameLayoutParams(390, 844, true);
+      const l = gameLayoutParams(844, 390, true);
+      return d.mode === 'desktop' && p.mode === 'portrait' && l.mode === 'landscape' &&
+             (p.step/p.obs) < (l.step/l.obs) &&            // 竖屏三层明显更靠近
+             p.obs < 390*.17 && l.obs < 844*.17 &&          // 点心不超过列距，横向不重叠
+             p.step >= p.obs && l.step > l.obs &&           // 垂直方向都绝不叠层
+             Math.abs(p.midY/844 - l.midY/390) > .02;       // 三层纵向位置也各自独立设计
+    })();
+    R.gLayMono = (()=>{        /* 任意 (obs,step,midY) 下三层单调且相邻间距 = step */
       const s0 = GLAY.obs, t0 = GLAY.step, m0 = GLAY.midY;
-      GLAY.obs = 45; GLAY.step = 45 * 1.25; GLAY.midY = 400;
+      GLAY.obs = 60; GLAY.step = 72; GLAY.midY = 400;
       const ok = laneY(2) < laneY(1) && laneY(1) < laneY(0) &&
-                 Math.abs(laneY(0) - laneY(2) - GLAY.step*2) < 1e-9 &&
-                 GLAY.step > GLAY.obs;
+                 Math.abs(laneY(0) - laneY(1) - 72) < 1e-9 &&
+                 Math.abs(laneY(1) - laneY(2) - 72) < 1e-9;
       GLAY.obs = s0; GLAY.step = t0; GLAY.midY = m0;
       return ok;
     })();
+    R.gObsNoLayout = (()=>{    /* 障碍 left/top 生成后不再被 posObs 改写（零强制重排） */
+      const o = makeObs(1, 'cake');
+      const p = o.pieces[0];
+      const l0 = p.el.style.left, t0 = p.el.style.top;
+      o.z = .5; posObs(o); o.z = .8; posObs(o); o.z = 1.05; posObs(o);
+      const ok = !!l0 && !!t0 && p.el.style.left === l0 && p.el.style.top === t0 &&
+                 /translateY/.test(p.el.style.transform);
+      dropObs(o);
+      return ok;
+    })();
     R.gObsPx = ($('game').style.getPropertyValue('--obsPx') || '').length > 2;
+    R.gNoFullApi = !new RegExp('request'+'Fullscreen|orientation'+'\\.lock').test(
+      [...document.querySelectorAll('script:not([src])')].map(s=>s.textContent).join(''));
+    R.gStageNoLongTrans = (()=>{  /* #stage 不再有 1s+ transform 过渡 / 超大 will-change */
+      const cs = getComputedStyle(stage);
+      const dur = parseFloat(cs.transitionDuration) || 0;
+      return dur <= .7 && !/transform/.test(cs.transitionProperty) &&
+             cs.willChange !== 'transform';
+    })();
     const f0 = curFit;
     $('vPlus').click();
     R.viewZoomUp  = curFit > f0 && view.zoom > 1;
@@ -3563,6 +3602,11 @@ if(location.hash.indexOf('selftest') >= 0){
                     view.panX === 0 && view.panY === 0;
     R.viewBar     = !!$('viewBar') && !!$('vRot') &&
                     parseFloat(stage.style.getPropertyValue('--fit')) > 0;
+    R.vRotGuide   = (()=>{      /* 点横屏按钮：只出引导文案，不调全屏/锁方向，不报错 */
+      try{ $('vRot').click(); }catch(e){ return false; }
+      return !document.fullscreenElement &&
+             /方向锁定/.test($('rotateTip').textContent);
+    })();
 
     document.title = 'SELFTEST ' + JSON.stringify(R);
     const d = document.createElement('pre');
